@@ -120,7 +120,7 @@ export default function MeTab({ onBack }) {
   }
 
   return (
-    <div className="px-4 space-y-6 max-w-md mx-auto" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+    <div className="px-4 space-y-6 max-w-md mx-auto" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Settings</h1>
         <button
