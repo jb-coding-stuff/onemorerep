@@ -120,7 +120,7 @@ export async function pushPack(pack, { active = false } = {}) {
       .from('program_pack')
       .update({ is_active: false })
       .neq('pack_id', pack.packId)
-    if (clearError) console.error('Sync: failed to clear active packs', clearError)
+    if (clearError) throw clearError
   }
 
   const { error } = await supabase
@@ -136,7 +136,7 @@ export async function pushPack(pack, { active = false } = {}) {
       updated_at: pack.updatedAt || new Date().toISOString()
     }, { onConflict: 'pack_id' })
 
-  if (error) console.error('Sync: failed to push pack', error)
+  if (error) throw error
 }
 
 /**

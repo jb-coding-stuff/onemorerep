@@ -86,6 +86,32 @@ export async function addAlias(canonicalId, alias) {
 }
 
 /**
+ * Case-insensitive union of alias lists, keeping first-seen order. Mirrors
+ * mcp-server/src/resolver.js so both writers produce identical alias lists.
+ * @param {string[]} [existing]
+ * @param {string[]} [incoming]
+ * @param {string} [displayName]
+ * @returns {string[]}
+ */
+function unionAliases(existing, incoming, displayName) {
+  const out = []
+  const seen = new Set()
+  const push = (v) => {
+    if (typeof v !== 'string') return
+    const t = v.trim()
+    if (!t) return
+    const key = t.toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    out.push(t)
+  }
+  for (const a of existing || []) push(a)
+  for (const a of incoming || []) push(a)
+  push(displayName)
+  return out
+}
+
+/**
  * Resolve a raw id-or-name to a canonical id: exact id, then exact alias,
  * then normalised-name match. Returns null if nothing matches.
  * @param {string} idOrName

@@ -93,7 +93,7 @@ function pushPackToRemote(pack) {
     .catch(() => {})
   Promise.resolve()
     .then(() => pushPack(pack, { active: true }))
-    .catch(() => {})
+    .catch(err => console.error('Sync: failed to push pack', err))
 }
 
 /**
@@ -213,6 +213,26 @@ async function foldWorkoutLogIntoCatalog() {
         aliases: ex.name ? [ex.name] : []
       })
     }
+  }
+}
+
+/**
+ * User-initiated plan switch. Unlike the fire-and-forget push used on import,
+ * this awaits the remote write: startup sync adopts whichever pack Supabase
+ * marks active, so an unfinished write would revert the switch on next load.
+ * A failed remote write (offline) doesn't block the local switch.
+ * @param {string} packId
+ * @returns {Promise<{ remoteSynced: boolean }>}
+ */
+export async function switchPack(packId) {
+  await activatePack(packId)
+  const pack = await getPack(packId)
+  try {
+    await pushPack(pack, { active: true })
+    return { remoteSynced: true }
+  } catch (err) {
+    console.error('Sync: failed to mark pack active remotely', err)
+    return { remoteSynced: false }
   }
 }
 

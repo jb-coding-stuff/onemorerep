@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { db } from '../../db/db'
-import { activateDefaultPack, importPack } from '../../program/localProvider'
+import {
+  activateDefaultPack,
+  importPack,
+  getAvailablePacks,
+  switchPack
+} from '../../program/localProvider'
 import { useSettings } from '../../contexts/SettingsContext'
 
 function formatDuration(seconds) {
@@ -18,6 +23,41 @@ export default function MeTab({ onBack }) {
   const [importText, setImportText] = useState('')
   const [importError, setImportError] = useState(null)
   const [importing, setImporting] = useState(false)
+  const [packs, setPacks] = useState([])
+  const [activePackId, setActivePackId] = useState(null)
+  const [switchingTo, setSwitchingTo] = useState(null)
+  const [switchError, setSwitchError] = useState(null)
+  const [offlineSwitch, setOfflineSwitch] = useState(false)
+
+  useEffect(() => {
+    getAvailablePacks()
+      .then(({ packs, activePackId }) => {
+        setPacks([...packs].sort((a, b) => a.name.localeCompare(b.name)))
+        setActivePackId(activePackId)
+      })
+      .catch(err => console.error('Failed to load plans:', err))
+  }, [])
+
+  async function handleSwitchPack(pack) {
+    if (pack.packId === activePackId || switchingTo) return
+    if (!confirm(`Switch to "${pack.name}"?\n\nYour workout history and weights are kept.`)) return
+    setSwitchingTo(pack.packId)
+    setSwitchError(null)
+    try {
+      const { remoteSynced } = await switchPack(pack.packId)
+      if (remoteSynced) {
+        window.location.reload()
+      } else {
+        setActivePackId(pack.packId)
+        setOfflineSwitch(true)
+        setSwitchingTo(null)
+      }
+    } catch (err) {
+      console.error('Failed to switch plan:', err)
+      setSwitchError(err.message || 'Switch failed')
+      setSwitchingTo(null)
+    }
+  }
 
   // Use local state if edited, otherwise fall back to context values
   const compoundVal = compound ?? compoundRest
@@ -128,6 +168,56 @@ export default function MeTab({ onBack }) {
           </button>
         )}
       </div>
+
+      {/* Training Plan */}
+      {packs.length > 0 && (
+        <div className="border-t border-divider pt-4 space-y-3">
+          <h2 className="text-sm font-semibold">Training Plan</h2>
+          <div className="space-y-2">
+            {packs.map(pack => {
+              const isActive = pack.packId === activePackId
+              const isSwitching = pack.packId === switchingTo
+              return (
+                <button
+                  key={pack.packId}
+                  onClick={() => handleSwitchPack(pack)}
+                  disabled={isActive || !!switchingTo}
+                  className={`w-full flex items-center justify-between gap-3 px-3 py-3 rounded border text-left transition-colors disabled:cursor-default ${
+                    isActive ? 'border-black' : 'border-divider hover:bg-divider'
+                  } ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium truncate">{pack.name}</div>
+                    <div className="text-xs text-secondary truncate">
+                      {pack.sessions.length} days · {pack.sessions.map(s => s.label).join(', ')}
+                    </div>
+                  </div>
+                  <span className="text-sm shrink-0">
+                    {isSwitching ? 'Switching…' : isActive ? '✓' : ''}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+          {switchError && (
+            <p className="text-xs text-black border border-black rounded p-2 break-words">{switchError}</p>
+          )}
+          {offlineSwitch && (
+            <div className="text-xs border border-black rounded p-2 space-y-2">
+              <p>
+                Switched on this device only — the cloud couldn't be reached. The app may
+                switch back the next time it opens online; if so, just switch again.
+              </p>
+              <button
+                onClick={() => window.location.reload()}
+                className="w-full py-2 bg-black text-white rounded font-medium"
+              >
+                OK
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Load Program */}
       <div className="border-t border-divider pt-4">
