@@ -146,6 +146,8 @@ export default function TodayTab({ onBack }) {
   const program = useLiveQuery(() => db.program.toArray().then(p => p[0]))
   const [state, dispatch] = useReducer(workoutReducer, initialState)
   const [suggestedSession, setSuggestedSession] = useState(null)
+  // In-progress workout whose session isn't in the current plan (plan was switched).
+  const [staleWorkout, setStaleWorkout] = useState(null)
 
   const sessions = program?.sessions || []
   const progressionRules = program?.progressionRules
@@ -163,8 +165,11 @@ export default function TodayTab({ onBack }) {
     async function loadOrStartWorkout() {
       const activeWorkout = await loadActiveWorkout()
       if (activeWorkout) {
-        dispatch({ type: 'RESTORE_WORKOUT', payload: activeWorkout })
-        return
+        if (sessions.some(s => s.label === activeWorkout.selectedSession)) {
+          dispatch({ type: 'RESTORE_WORKOUT', payload: activeWorkout })
+          return
+        }
+        setStaleWorkout(activeWorkout)
       }
 
       const lastSessionSetting = await db.settings.get('lastSessionLabel')
@@ -234,10 +239,22 @@ export default function TodayTab({ onBack }) {
       })
     )
 
+    setStaleWorkout(null)
     dispatch({
       type: 'SELECT_SESSION',
       payload: { sessionLabel, exercises: exercisesWithWeights }
     })
+  }
+
+  function resumeStaleWorkout() {
+    dispatch({ type: 'RESTORE_WORKOUT', payload: staleWorkout })
+    setStaleWorkout(null)
+  }
+
+  async function discardStaleWorkout() {
+    if (!confirm(`Discard the unfinished ${staleWorkout.selectedSession} workout? Its sets won't be saved.`)) return
+    await clearActiveWorkout()
+    setStaleWorkout(null)
   }
 
 
@@ -305,7 +322,7 @@ export default function TodayTab({ onBack }) {
 
   if (state.mode === 'picking' && suggestedSession) {
     return (
-      <div className="px-4 flex flex-col min-h-screen" style={{ paddingTop: 'max(2rem, env(safe-area-inset-top))', paddingBottom: '5rem' }}>
+      <div className="px-4 flex flex-col min-h-screen" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)', paddingBottom: '5rem' }}>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-lg font-bold">Today's Workout</h2>
           {onBack && (
@@ -314,6 +331,30 @@ export default function TodayTab({ onBack }) {
             </button>
           )}
         </div>
+        {staleWorkout && (
+          <div className="mb-6 p-4 border border-black rounded space-y-3">
+            <p className="text-sm">
+              Unfinished <span className="font-semibold">{staleWorkout.selectedSession}</span> from
+              your previous plan
+              ({staleWorkout.exercises.filter(ex => ex.setsCompleted > 0).length}/{staleWorkout.exercises.length} exercises started).
+              Starting a new workout discards it.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={resumeStaleWorkout}
+                className="flex-1 py-2 bg-black text-white rounded font-medium text-sm transition-colors hover:bg-[#333333]"
+              >
+                Resume
+              </button>
+              <button
+                onClick={discardStaleWorkout}
+                className="flex-1 py-2 border border-divider rounded text-sm transition-colors hover:bg-divider"
+              >
+                Discard
+              </button>
+            </div>
+          </div>
+        )}
         <div className="space-y-3">
           {sessions.map(session => (
             <button
@@ -358,7 +399,7 @@ export default function TodayTab({ onBack }) {
   if (state.isOverviewMode) {
     // Overview mode: show all exercises
     return (
-      <div className="pb-20 px-4 py-4" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))' }}>
+      <div className="pb-20 px-4 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
             <h2 className="text-lg font-bold">{state.selectedSession}</h2>
@@ -455,7 +496,7 @@ export default function TodayTab({ onBack }) {
 
   // Default view: show only current set
   return (
-    <div className="pb-20 px-4 flex flex-col min-h-screen" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top))', paddingBottom: '5rem' }}>
+    <div className="pb-20 px-4 flex flex-col min-h-screen" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)', paddingBottom: '5rem' }}>
       <div className="flex items-center justify-between mb-8">
         <div className="flex-1">
           <h2 className="text-lg font-bold">{state.selectedSession}</h2>
