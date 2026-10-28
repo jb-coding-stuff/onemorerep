@@ -1,12 +1,53 @@
 import { useState, useEffect, useRef } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 
+const WEIGHT_STEP = 2.5
+const REPS_STEP = 1
+
+function formatNumber(n) {
+  return String(Number(n.toFixed(2)))
+}
+
+// Accepts "62,5" (German keypad) as well as "62.5".
+function parseNumber(text) {
+  const n = parseFloat(String(text).replace(',', '.'))
+  return Number.isFinite(n) ? n : null
+}
+
+function Stepper({ label, value, touched, onChange, onStep, inputMode }) {
+  const stepButton = 'w-12 h-12 shrink-0 flex items-center justify-center border border-divider rounded text-xl font-medium hover:bg-divider transition-colors'
+  return (
+    <div className="border border-divider rounded p-2">
+      <div className="text-xs font-medium mb-2 text-center">{label}</div>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={() => onStep(1)} className={stepButton} aria-label={`${label} plus`}>
+          +
+        </button>
+        <input
+          type="text"
+          inputMode={inputMode}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          onFocus={e => e.target.select()}
+          className={`min-w-0 flex-1 h-12 px-1 border border-divider rounded text-xl font-semibold text-center ${
+            touched ? 'text-black' : 'text-secondary'
+          }`}
+        />
+        <button type="button" onClick={() => onStep(-1)} className={stepButton} aria-label={`${label} minus`}>
+          −
+        </button>
+      </div>
+    </div>
+  )
+}
+
 export default function SetRow({ set, setIndex, exerciseIndex, exercise, onComplete }) {
   const [logging, setLogging] = useState(false)
-  const [reps, setReps] = useState('')
-  const [weight, setWeight] = useState(set.weight)
+  const [reps, setReps] = useState(String(set.targetReps))
+  const [weight, setWeight] = useState(formatNumber(set.weight || 0))
+  const [repsTouched, setRepsTouched] = useState(false)
+  const [weightTouched, setWeightTouched] = useState(false)
   const [rpe, setRpe] = useState(8.5)
-  const [mode, setMode] = useState('reps') // 'reps' or 'weight'
   const [resting, setResting] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const [totalTime, setTotalTime] = useState(0)
@@ -47,16 +88,24 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     }
   }, [resting, timeLeft])
 
+  function resetInputs() {
+    setReps(String(set.targetReps))
+    setWeight(formatNumber(set.weight || 0))
+    setRepsTouched(false)
+    setWeightTouched(false)
+    setRpe(8.5)
+  }
+
   if (!logging && !resting) {
     return (
       <button
         onClick={() => {
-          setWeight(set.weight)
+          resetInputs()
           setLogging(true)
         }}
         className={`w-full p-3 rounded border transition-all ${
           set.completed
-            ? 'border-divider bg-divider/50 opacity-60'
+            ? 'border-divider bg-divider/50'
             : 'border-divider hover:border-black hover:bg-divider/30'
         }`}
       >
@@ -65,7 +114,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           <div className="flex items-center gap-3">
             {set.completed ? (
               <>
-                <span className="text-sm text-secondary">{set.actualReps}×{set.weight} kg</span>
+                <span className="text-sm text-black">{set.actualReps}×{set.weight} kg</span>
                 <span className="text-lg">✓</span>
               </>
             ) : (
@@ -77,14 +126,26 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     )
   }
 
+  function stepWeight(direction) {
+    const current = parseNumber(weight) ?? set.weight ?? 0
+    setWeight(formatNumber(Math.max(0, current + direction * WEIGHT_STEP)))
+    setWeightTouched(true)
+  }
+
+  function stepReps(direction) {
+    const current = parseInt(reps, 10)
+    const base = Number.isFinite(current) ? current : set.targetReps
+    setReps(String(Math.max(0, base + direction * REPS_STEP)))
+    setRepsTouched(true)
+  }
+
   function handleSubmit() {
-    if (!reps || reps === '') {
-      alert('Enter reps')
-      return
-    }
+    const parsedReps = parseInt(reps, 10)
+    const finalReps = Number.isFinite(parsedReps) ? parsedReps : set.targetReps
+    const finalWeight = parseNumber(weight) ?? set.weight ?? 0
 
     // Mark set complete immediately
-    onComplete(parseInt(reps), rpe, weight)
+    onComplete(finalReps, rpe, finalWeight)
     setLogging(false)
 
     // Start rest timer
@@ -128,34 +189,25 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     <div className="p-3 border border-black rounded-lg bg-white space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Set {set.setNumber}</span>
-        <span className="text-xs text-secondary">{displayWeight(weight)} × {set.targetReps}</span>
+        <span className="text-xs text-secondary">Target {displayWeight(set.weight)} × {set.targetReps}</span>
       </div>
 
-      {/* Reps/Weight input */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-xs font-medium">
-            {mode === 'reps' ? 'Reps' : 'Weight (kg)'}
-          </label>
-          <button
-            onClick={() => setMode(mode === 'reps' ? 'weight' : 'reps')}
-            className="text-xs font-medium px-2 py-1 hover:bg-divider rounded transition-colors"
-          >
-            kg
-          </button>
-        </div>
-        <input
-          type="number"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          value={mode === 'reps' ? reps : weight}
-          onChange={e => mode === 'reps' ? setReps(e.target.value) : setWeight(parseFloat(e.target.value) || 0)}
-          placeholder={mode === 'reps' ? '0' : '0'}
-          className="w-full px-3 py-2 border border-divider rounded text-lg font-semibold text-center"
-          autoFocus
-          step={mode === 'weight' ? '0.25' : '1'}
-        />
-      </div>
+      <Stepper
+        label="Weight (kg)"
+        value={weight}
+        touched={weightTouched}
+        inputMode="decimal"
+        onChange={v => { setWeight(v); setWeightTouched(true) }}
+        onStep={stepWeight}
+      />
+      <Stepper
+        label="Reps"
+        value={reps}
+        touched={repsTouched}
+        inputMode="numeric"
+        onChange={v => { setReps(v.replace(/\D/g, '')); setRepsTouched(true) }}
+        onStep={stepReps}
+      />
 
       {/* RPE slider */}
       <div>
@@ -209,10 +261,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
         <button
           onClick={() => {
             setLogging(false)
-            setReps('')
-            setWeight(set.weight)
-            setMode('reps')
-            setRpe(8.5)
+            resetInputs()
           }}
           className="px-3 py-2 border border-divider rounded text-secondary hover:bg-divider transition-colors"
         >
