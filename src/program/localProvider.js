@@ -82,6 +82,22 @@ export async function activateDefaultPack() {
 }
 
 /**
+ * First-run plan selection. Adopts the plan marked active in Supabase when
+ * there is one, so onboarding on a new device doesn't overwrite a published
+ * plan with the built-in default. Falls back to the default when offline or
+ * nothing is published.
+ * @returns {Promise<string>} the activated packId
+ */
+export async function activateInitialPack() {
+  const remoteActiveId = await pullPacks()
+  if (remoteActiveId && (await getPack(remoteActiveId))) {
+    await activatePack(remoteActiveId)
+    return remoteActiveId
+  }
+  return activateDefaultPack()
+}
+
+/**
  * Fire-and-forget push of the current catalog + a pack to Supabase. Never awaits
  * and never throws (offline / missing config is fine — the local write already
  * succeeded before this runs).

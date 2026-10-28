@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { db } from '../db/db'
-import { activateDefaultPack } from '../program/localProvider'
+import { activateInitialPack } from '../program/localProvider'
 
 export default function Onboarding({ onComplete }) {
   const [step, setStep] = useState(0)
@@ -9,8 +9,7 @@ export default function Onboarding({ onComplete }) {
   async function handleStart() {
     setLoading(true)
     try {
-      // Seed + activate the built-in default program pack
-      await activateDefaultPack()
+      await activateInitialPack()
 
       // Mark onboarding as complete
       await db.settings.put({ key: 'onboardingComplete', value: true })
