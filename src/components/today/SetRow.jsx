@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
+import { useRestTimer } from '../../contexts/RestTimerContext'
 
 const WEIGHT_STEP = 2.5
 const REPS_STEP = 1
@@ -48,11 +49,18 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
   const [repsTouched, setRepsTouched] = useState(false)
   const [weightTouched, setWeightTouched] = useState(false)
   const [rpe, setRpe] = useState(8.5)
-  const [resting, setResting] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(0)
-  const [totalTime, setTotalTime] = useState(0)
-  const intervalRef = useRef(null)
   const { displayWeight, compoundRest, isolationRest } = useSettings()
+  const restTimer = useRestTimer()
+  const timerKey = `${exercise.exerciseId}:${set.setNumber}`
+  const resting = restTimer.active && restTimer.timerKey === timerKey
+  const { setInlineKey } = restTimer
+
+  // Tell the app-wide timer bar this set is showing the countdown itself.
+  useEffect(() => {
+    if (!resting) return
+    setInlineKey(timerKey)
+    return () => setInlineKey(k => (k === timerKey ? null : k))
+  }, [resting, timerKey, setInlineKey])
 
   // Prevent scrolling when logging set
   useEffect(() => {
@@ -65,28 +73,6 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
       document.body.style.overflow = 'auto'
     }
   }, [logging])
-
-  useEffect(() => {
-    if (!resting || timeLeft <= 0) return
-
-    intervalRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        const newTime = prev - 1
-        if (newTime <= 0) {
-          setResting(false)
-          return 0
-        }
-        return newTime
-      })
-    }, 1000)
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current)
-        intervalRef.current = null
-      }
-    }
-  }, [resting, timeLeft])
 
   function resetInputs() {
     setReps(String(set.targetReps))
@@ -148,30 +134,20 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     onComplete(finalReps, rpe, finalWeight)
     setLogging(false)
 
-    // Start rest timer
     const duration = exercise.movementType === 'isolation' ? isolationRest : compoundRest
-    setTotalTime(duration)
-    setTimeLeft(duration)
-    setResting(true)
-  }
-
-  function skipTimer() {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current)
-      intervalRef.current = null
-    }
-    setResting(false)
+    restTimer.startTimer(duration, timerKey, exercise.name)
   }
 
   if (resting) {
-    const progress = (totalTime - timeLeft) / totalTime
-    const minutes = Math.floor(timeLeft / 60)
-    const seconds = timeLeft % 60
+    const { secondsRemaining, totalSeconds } = restTimer
+    const progress = (totalSeconds - secondsRemaining) / totalSeconds
+    const minutes = Math.floor(secondsRemaining / 60)
+    const seconds = secondsRemaining % 60
 
     return (
       <div className="p-3 border border-black rounded-lg bg-white">
         <button
-          onClick={skipTimer}
+          onClick={restTimer.skipTimer}
           className="w-full py-4 text-white font-semibold rounded transition-all"
           style={{
             background: `linear-gradient(to right, white 0%, white ${progress * 100}%, black ${progress * 100}%, black 100%)`
