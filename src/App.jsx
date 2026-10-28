@@ -8,6 +8,7 @@ import TodayTab from './components/today/TodayTab'
 import HistoryTab from './components/history/HistoryTab'
 import MeTab from './components/me/MeTab'
 import Onboarding from './components/Onboarding'
+import RestTimerBar from './components/RestTimerBar'
 import { restoreFromSupabase } from './db/sync'
 import { ensureProgramSystem, syncPacksFromRemote } from './program/localProvider'
 
@@ -85,6 +86,7 @@ function AppContent() {
         {activeTab === 'history' && <HistoryTab onBack={() => setActiveTab(null)} />}
         {activeTab === 'me' && <MeTab onBack={() => setActiveTab(null)} />}
       </main>
+      <RestTimerBar />
     </div>
   )
 }
