@@ -19,14 +19,11 @@ export default function ExerciseCard({
   const [showSwap, setShowSwap] = useState(false)
   const { displayWeight } = useSettings()
 
-  const isComplete = exercise.setsCompleted === exercise.sets.length
   const lastSetIndex = exercise.sets.findIndex((s, i) => i === exercise.sets.length - 1)
 
   return (
     <>
-      <div className={`border border-divider rounded-lg p-4 transition-opacity ${
-        isComplete ? 'opacity-60' : ''
-      }`}>
+      <div className="border border-divider rounded-lg p-4">
         {/* Header */}
         <button
           onClick={() => setExpanded(!expanded)}
