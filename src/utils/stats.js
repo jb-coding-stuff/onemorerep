@@ -75,7 +75,8 @@ export function setRows(workouts, identify) {
           muscleGroup: who.muscleGroup,
           region: regionOf(who.muscleGroup),
           weight: Number(s.weight) || 0,
-          reps: Number(s.actualReps) || 0
+          reps: Number(s.actualReps) || 0,
+          rpe: s.rpe ?? null
         })
       }
     }
@@ -155,4 +156,31 @@ export function weeklyVolume(rows, region = null) {
     out.push({ t: k, volume: Math.round(m.get(k) || 0) })
   }
   return out
+}
+
+/** Completed sets per calendar week, oldest first (gaps filled with 0). */
+export function weeklySets(rows) {
+  if (rows.length === 0) return []
+  const m = new Map()
+  for (const r of rows) {
+    const k = weekStart(r.t)
+    m.set(k, (m.get(k) || 0) + 1)
+  }
+  const keys = [...m.keys()].sort((a, b) => a - b)
+  const out = []
+  for (let k = keys[0]; k <= keys[keys.length - 1]; k = weekStart(k + 8 * 86400000)) {
+    out.push({ t: k, sets: m.get(k) || 0 })
+  }
+  return out
+}
+
+/** Most recent sessions of one exercise, newest first, with their sets. */
+export function recentSessions(rows, exerciseId, limit = 5) {
+  const byWorkout = new Map()
+  for (const r of rows) {
+    if (r.exerciseId !== exerciseId) continue
+    if (!byWorkout.has(r.workoutDate)) byWorkout.set(r.workoutDate, { t: r.t, sets: [] })
+    byWorkout.get(r.workoutDate).sets.push({ weight: r.weight, reps: r.reps, rpe: r.rpe })
+  }
+  return [...byWorkout.values()].sort((a, b) => b.t - a.t).slice(0, limit)
 }
