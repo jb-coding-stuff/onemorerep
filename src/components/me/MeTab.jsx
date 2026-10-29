@@ -196,10 +196,10 @@ export default function MeTab({ onBack }) {
             })}
           </div>
           {switchError && (
-            <p className="text-xs text-red-400 break-words">{switchError}</p>
+            <p className="notice text-xs text-red-400 break-words">{switchError}</p>
           )}
           {offlineSwitch && (
-            <div className="text-xs text-secondary space-y-2">
+            <div className="notice text-xs text-secondary space-y-2">
               <p>
                 Switched on this device only — the cloud couldn't be reached. The app may
                 switch back the next time it opens online; if so, just switch again.
@@ -250,7 +250,7 @@ export default function MeTab({ onBack }) {
               className="w-full px-3 py-2 bg-white/[.08] border border-white/10 rounded-xl text-xs font-mono"
             />
             {importError && (
-              <p className="text-xs text-red-400 break-words">{importError}</p>
+              <p className="notice text-xs text-red-400 break-words">{importError}</p>
             )}
             <div className="flex gap-2">
               <button

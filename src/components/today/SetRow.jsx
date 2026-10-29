@@ -143,24 +143,28 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     const seconds = secondsRemaining % 60
 
     return (
-      <div className="py-2">
-        <button
-          onClick={restTimer.skipTimer}
-          className="w-full py-4 font-semibold rounded-xl transition-all"
-          style={{
-            background: `linear-gradient(to right, rgba(255,255,255,.06) 0%, rgba(255,255,255,.06) ${progress * 100}%, rgba(255,255,255,.85) ${progress * 100}%, rgba(255,255,255,.85) 100%)`
-          }}
-        >
-          <span style={{ color: progress > 0.5 ? 'var(--ink)' : '#0a0a0c', fontWeight: 'bold' }}>
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+      <div className="pt-3">
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-secondary flex-1">Rest</span>
+          <span className="text-lg font-semibold tabular-nums">
+            {minutes}:{String(seconds).padStart(2, '0')}
           </span>
-        </button>
+          <button
+            onClick={restTimer.skipTimer}
+            className="text-sm text-secondary px-2 py-1 -mr-2 rounded-full hover:text-[color:var(--ink)] transition-colors"
+          >
+            Skip
+          </button>
+        </div>
+        <div className="mt-3 h-px bg-white/[.06] overflow-hidden">
+          <div className="h-full bg-white/70 transition-[width] duration-300 ease-linear" style={{ width: `${progress * 100}%` }} />
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="py-3 space-y-3 border-b border-white/[.06] last:border-b-0">
+    <div className="-mx-3 my-1 px-3 py-3 space-y-3 rounded-2xl bg-white/[.045]">
       <span className="text-sm font-medium">Set {set.setNumber}</span>
 
       <Stepper
