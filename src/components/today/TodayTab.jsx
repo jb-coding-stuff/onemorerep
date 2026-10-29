@@ -351,22 +351,14 @@ export default function TodayTab({ onBack }) {
     state.exercises.every(ex => ex.setsCompleted === ex.sets.length)
   const anySetDone = state.exercises.some(ex => ex.setsCompleted > 0)
 
-  function finishWorkout() {
-    if (!isAllDone) {
-      const open = state.exercises.reduce((n, ex) => n + ex.sets.length - ex.setsCompleted, 0)
-      if (!confirm(`Finish now? ${open} open set${open === 1 ? '' : 's'} won't be logged.`)) return
-    }
-    dispatch({ type: 'FINISH_WORKOUT' })
-  }
-
+  // Sets are saved as they're logged, so Finish only appears once the
+  // workout is complete.
   function finishButton() {
-    if (!anySetDone) return null
+    if (!isAllDone) return null
     return (
       <button
-        onClick={finishWorkout}
-        className={`w-full py-4 font-semibold transition-colors ${
-          isAllDone ? 'btn-primary' : 'btn-glass'
-        }`}
+        onClick={() => dispatch({ type: 'FINISH_WORKOUT' })}
+        className="btn-primary w-full py-4 font-semibold transition-colors"
       >
         Finish Workout
       </button>
@@ -392,7 +384,7 @@ export default function TodayTab({ onBack }) {
           <h2 className="text-lg font-bold">Today's Workout</h2>
         </div>
         {staleWorkout && (
-          <div className="mb-6 pb-5 border-b border-white/[.06] space-y-3">
+          <div className="notice mb-6 space-y-3">
             <p className="text-sm">
               Unfinished <span className="font-semibold">{staleWorkout.selectedSession}</span> from
               your previous plan
@@ -566,7 +558,7 @@ export default function TodayTab({ onBack }) {
         renderItem={renderExerciseCard}
       />
 
-      {anySetDone && (
+      {isAllDone && (
         <div className="px-4 pt-2" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
           {finishButton()}
         </div>

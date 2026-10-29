@@ -166,6 +166,13 @@ body {
   }
   .btn-glass:hover { background: var(--control-bg-hover); }
 
+  /* One-off messages (warnings, errors) stand out from the flat lists. */
+  .notice {
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .055);
+  }
+
   /* Light edge: bright where the key light hits (top-left), dark mid-way,
      a faint return on the far side; masked to a 1px ring. */
   .glass-card::before,

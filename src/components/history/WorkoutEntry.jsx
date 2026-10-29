@@ -37,7 +37,7 @@ export default function WorkoutEntry({ entry }) {
       </button>
 
       {expanded && (
-        <div className="pb-5 space-y-4">
+        <div className="mb-5 ml-1 pl-4 border-l border-white/10 space-y-4">
           {exercises.map((exercise, idx) => (
             <div key={idx}>
               <div className="font-medium text-sm mb-2">
