@@ -110,6 +110,12 @@ function workoutReducer(state, action) {
         mode: 'summary'
       }
 
+    case 'RESUME_LOGGING':
+      return {
+        ...state,
+        mode: 'logging'
+      }
+
     case 'TOGGLE_OVERVIEW':
       return {
         ...state,
@@ -312,6 +318,29 @@ export default function TodayTab({ onBack }) {
 
   const isAllDone = state.exercises.length > 0 &&
     state.exercises.every(ex => ex.setsCompleted === ex.sets.length)
+  const anySetDone = state.exercises.some(ex => ex.setsCompleted > 0)
+
+  function finishWorkout() {
+    if (!isAllDone) {
+      const open = state.exercises.reduce((n, ex) => n + ex.sets.length - ex.setsCompleted, 0)
+      if (!confirm(`Finish now? ${open} open set${open === 1 ? '' : 's'} won't be logged.`)) return
+    }
+    dispatch({ type: 'FINISH_WORKOUT' })
+  }
+
+  function finishButton() {
+    if (!anySetDone) return null
+    return (
+      <button
+        onClick={finishWorkout}
+        className={`w-full py-4 font-semibold rounded transition-colors ${
+          isAllDone ? 'bg-black text-white hover:bg-[#333333]' : 'border border-black text-black hover:bg-divider'
+        }`}
+      >
+        Finish Workout
+      </button>
+    )
+  }
 
   if (!program) {
     return (
@@ -388,6 +417,7 @@ export default function TodayTab({ onBack }) {
           await clearActiveWorkout()
           dispatch({ type: 'RESET' })
         }}
+        onCancel={() => dispatch({ type: 'RESUME_LOGGING' })}
       />
     )
   }
@@ -472,17 +502,11 @@ export default function TodayTab({ onBack }) {
             </div>
           ))}
 
-          {isAllDone && (
-            <button
-              onClick={() => dispatch({ type: 'FINISH_WORKOUT' })}
-              className="w-full py-4 bg-black text-white font-semibold rounded transition-colors hover:bg-[#333333]"
-            >
-              View Summary
-            </button>
-          )}
+          {finishButton()}
 
           <button
             onClick={async () => {
+              if (anySetDone && !confirm('Discard this workout? Logged sets won\'t be saved.')) return
               // Save current session as "last completed" before skipping
               await db.settings.put({ key: 'lastSessionLabel', value: state.selectedSession })
               await clearActiveWorkout()
@@ -510,14 +534,9 @@ export default function TodayTab({ onBack }) {
         renderItem={renderExerciseCard}
       />
 
-      {isAllDone && (
+      {anySetDone && (
         <div className="px-4 pt-2" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
-          <button
-            onClick={() => dispatch({ type: 'FINISH_WORKOUT' })}
-            className="w-full py-4 bg-black text-white font-semibold rounded transition-colors hover:bg-[#333333]"
-          >
-            View Summary
-          </button>
+          {finishButton()}
         </div>
       )}
     </div>

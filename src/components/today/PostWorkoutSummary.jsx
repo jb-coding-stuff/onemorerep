@@ -6,12 +6,13 @@ import { updateProgressionAfterWorkout } from '../../utils/progressionEngine'
 import { db } from '../../db/db'
 import { pushWorkout, pushProgressionStates } from '../../db/sync'
 
-export default function PostWorkoutSummary({ exercises, sessionLabel, startTime, onDone }) {
+export default function PostWorkoutSummary({ exercises, sessionLabel, startTime, onDone, onCancel }) {
   const [saving, setSaving] = useState(false)
   const { displayWeight } = useSettings()
 
   const durationSeconds = Math.round((Date.now() - startTime) / 1000)
   const minutes = Math.floor(durationSeconds / 60)
+  const logged = exercises.filter(ex => !ex.isBonus && ex.sets.some(s => s.completed))
 
   async function handleSave() {
     setSaving(true)
@@ -21,7 +22,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         date: new Date().toISOString(),
         sessionLabel,
         durationSeconds,
-        exercises: exercises.filter(ex => !ex.isBonus).map(ex => ({
+        exercises: logged.map(ex => ({
           exerciseId: ex.exerciseId,
           name: ex.name,
           sets: ex.sets.map(s => ({
@@ -43,15 +44,12 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
       // Update progression states (skip bonus exercises)
       const program = await db.program.toArray().then(p => p[0])
       if (program) {
-        for (const exercise of exercises) {
-          // Skip bonus exercises - they're not in the program
-          if (exercise.isBonus) continue
-
+        for (const exercise of logged) {
           const programExercise = (program.sessions?.flatMap(s => s.exercises || []) || [])
             .find(e => e?.exerciseId === exercise.exerciseId)
 
           if (programExercise) {
-            const lastSet = exercise.sets[exercise.sets.length - 1]
+            const lastSet = exercise.sets.filter(s => s.completed).at(-1)
             const updated = updateProgressionAfterWorkout(
               {
                 exerciseId: exercise.exerciseId,
@@ -99,19 +97,21 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         {/* Exercise Summary */}
         <div className="mb-6 space-y-3">
           <h3 className="font-semibold">Exercises</h3>
-          {exercises
-            .filter(ex => !ex.isBonus)
-            .map(ex => (
+          {logged.map(ex => {
+            const done = ex.sets.filter(s => s.completed)
+            return (
               <div key={ex.exerciseId} className="p-3 border border-divider rounded">
                 <div className="font-medium">{ex.name}</div>
                 <div className="text-sm text-secondary mt-1">
-                  {ex.sets.length}×{ex.targetReps} @ {displayWeight(ex.sets[0].weight)}
+                  {done.map(s => `${s.actualReps}×${displayWeight(s.weight)}`).join(' · ')}
+                  {done.length < ex.sets.length && ` (${done.length}/${ex.sets.length} sets)`}
                 </div>
                 <div className="text-xs text-secondary mt-1">
-                  Avg RPE: {(ex.sets.reduce((sum, s) => sum + (s.rpe || 0), 0) / ex.sets.length).toFixed(1)}
+                  Avg RPE: {(done.reduce((sum, s) => sum + (s.rpe || 0), 0) / done.length).toFixed(1)}
                 </div>
               </div>
-            ))}
+            )
+          })}
         </div>
 
         {/* Bonus rounds */}
@@ -136,6 +136,15 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         >
           {saving ? 'Saving...' : 'Save Workout'}
         </button>
+        {onCancel && (
+          <button
+            onClick={onCancel}
+            disabled={saving}
+            className="w-full py-3 mt-2 text-sm font-medium text-secondary hover:bg-divider rounded transition-colors"
+          >
+            Back to workout
+          </button>
+        )}
       </div>
     </div>
   )
