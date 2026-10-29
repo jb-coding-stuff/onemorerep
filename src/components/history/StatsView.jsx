@@ -39,7 +39,7 @@ function makeIdentify(catalog, program) {
 
 function Section({ title, children }) {
   return (
-    <section className="py-5 border-t border-divider">
+    <section className="glass-card p-5 mt-4">
       <h2 className="text-sm font-semibold mb-4">{title}</h2>
       {children}
     </section>
@@ -48,13 +48,14 @@ function Section({ title, children }) {
 
 function Segmented({ options, value, onChange }) {
   return (
-    <div className="flex gap-1 p-1 bg-[#f1f1ef] rounded-lg overflow-x-auto">
+    <div className="glass-segmented overflow-x-auto">
       {options.map(o => (
         <button
           key={o.id}
           onClick={() => onChange(o.id)}
-          className={`flex-1 shrink-0 px-3 py-1.5 text-sm rounded-md transition-colors whitespace-nowrap ${
-            value === o.id ? 'bg-white font-semibold shadow-sm' : 'text-secondary'
+          aria-pressed={value === o.id}
+          className={`flex-1 shrink-0 px-3 py-1.5 text-sm transition-colors whitespace-nowrap ${
+            value === o.id ? 'font-semibold' : 'text-secondary'
           }`}
         >
           {o.label}
@@ -100,13 +101,13 @@ export default function StatsView({ workouts }) {
         <p className="text-secondary text-sm py-8">No completed sets in this period.</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-2 py-5">
+          <div className="grid grid-cols-3 gap-2 pt-4">
             {[
               ['Workouts', workoutCount],
               ['Sets', rows.length],
               ['Volume', `${Math.round(rows.reduce((s, r) => s + r.weight * r.reps, 0) / 1000)}t`]
             ].map(([label, value]) => (
-              <div key={label} className="p-3 rounded-lg bg-[#f6f6f4]">
+              <div key={label} className="glass-tile p-3">
                 <div className="text-xs text-secondary">{label}</div>
                 <div className="text-xl font-bold tabular-nums">{value}</div>
               </div>
@@ -145,7 +146,7 @@ export default function StatsView({ workouts }) {
             <select
               value={exerciseId || ''}
               onChange={e => setExerciseId(e.target.value)}
-              className="w-full mb-3 px-3 py-2 border border-divider rounded-lg text-sm bg-white"
+              className="btn-glass w-full mb-3 px-4 py-2.5 text-sm appearance-none"
             >
               {exerciseOptions.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>

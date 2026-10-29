@@ -12,9 +12,10 @@ export const REGION_COLORS = {
   other: '#a3a29c'
 }
 
-const INK = '#111111'
+const INK = '#1d1d1f'
+const ACCENT = '#007a80'
 const MUTED = '#8a8984'
-const GRID = '#ececea'
+const GRID = 'rgba(0,0,0,0.07)'
 
 /** Donut with a 2px surface gap between segments and the total in the hole. */
 export function Donut({ data, size = 168, thickness = 26, centerLabel }) {
@@ -55,8 +56,8 @@ export function BarList({ data, valueSuffix = '' }) {
             <span className="truncate pr-2">{d.label}</span>
             <span className="tabular-nums text-secondary">{d.value}{valueSuffix}</span>
           </div>
-          <div className="h-2 rounded-full bg-[#f1f1ef] overflow-hidden">
-            <div className="h-full rounded-full bg-black" style={{ width: `${(d.value / max) * 100}%` }} />
+          <div className="h-2 rounded-full bg-white/60 overflow-hidden">
+            <div className="h-full rounded-full bg-accent" style={{ width: `${(d.value / max) * 100}%` }} />
           </div>
         </div>
       ))}
@@ -125,12 +126,12 @@ export function LineChart({ points, format, zeroBased = false, height = 180 }) {
         ))}
         <text x={pad.l} y={height - 6} fontSize="10" fill={MUTED}>{fmtDate(t0)}</text>
         <text x={W - pad.r} y={height - 6} textAnchor="end" fontSize="10" fill={MUTED}>{fmtDate(t1)}</text>
-        <path d={path} fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
+        <path d={path} fill="none" stroke={ACCENT} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         {points.length <= 24 && points.map((p, i) => (
-          <circle key={i} cx={x(p.t)} cy={y(p.y)} r="3" fill={INK} stroke="#fff" strokeWidth="2" />
+          <circle key={i} cx={x(p.t)} cy={y(p.y)} r="3" fill={ACCENT} stroke="#fff" strokeWidth="2" />
         ))}
         <line x1={x(h.t)} x2={x(h.t)} y1={pad.t} y2={height - pad.b} stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
-        <circle cx={x(h.t)} cy={y(h.y)} r="5" fill={INK} stroke="#fff" strokeWidth="2" />
+        <circle cx={x(h.t)} cy={y(h.y)} r="5" fill={ACCENT} stroke="#fff" strokeWidth="2" />
       </svg>
     </div>
   )

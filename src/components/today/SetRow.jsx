@@ -16,9 +16,9 @@ function parseNumber(text) {
 }
 
 function Stepper({ label, value, touched, onChange, onStep, inputMode }) {
-  const stepButton = 'w-12 h-12 shrink-0 flex items-center justify-center border border-divider rounded text-xl font-medium hover:bg-divider transition-colors'
+  const stepButton = 'btn-glass w-12 h-12 shrink-0 flex items-center justify-center text-xl font-medium transition-colors'
   return (
-    <div className="border border-divider rounded p-2">
+    <div className="glass-inset p-2">
       <div className="text-xs font-medium mb-2 text-center">{label}</div>
       <div className="flex items-center gap-2">
         <button type="button" onClick={() => onStep(1)} className={stepButton} aria-label={`${label} plus`}>
@@ -30,8 +30,8 @@ function Stepper({ label, value, touched, onChange, onStep, inputMode }) {
           value={value}
           onChange={e => onChange(e.target.value)}
           onFocus={e => e.target.select()}
-          className={`min-w-0 flex-1 h-12 px-1 border border-divider rounded text-xl font-semibold text-center ${
-            touched ? 'text-black' : 'text-secondary'
+          className={`min-w-0 flex-1 h-12 px-1 bg-white/80 border border-white rounded-xl text-xl font-semibold text-center ${
+            touched ? 'text-[#1d1d1f]' : 'text-secondary'
           }`}
         />
         <button type="button" onClick={() => onStep(-1)} className={stepButton} aria-label={`${label} minus`}>
@@ -89,10 +89,10 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           resetInputs()
           setLogging(true)
         }}
-        className={`w-full p-3 rounded border transition-all ${
+        className={`w-full p-3 rounded-2xl border transition-all ${
           set.completed
-            ? 'border-divider bg-divider/50'
-            : 'border-divider hover:border-black hover:bg-divider/30'
+            ? 'border-white/70 bg-white/70'
+            : 'border-white/60 bg-white/35 hover:bg-white/55'
         }`}
       >
         <div className="flex items-center justify-between gap-3">
@@ -100,8 +100,8 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           <div className="flex items-center gap-3">
             {set.completed ? (
               <>
-                <span className="text-sm text-black">{set.actualReps}×{set.weight} kg</span>
-                <span className="text-lg">✓</span>
+                <span className="text-sm text-[#1d1d1f]">{set.actualReps}×{set.weight} kg</span>
+                <span className="text-lg text-accent">✓</span>
               </>
             ) : (
               <span className="text-sm text-secondary">{displayWeight(set.weight)} × {set.targetReps}</span>
@@ -145,15 +145,15 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     const seconds = secondsRemaining % 60
 
     return (
-      <div className="p-3 border border-black rounded-lg bg-white">
+      <div className="p-1.5 glass-inset">
         <button
           onClick={restTimer.skipTimer}
-          className="w-full py-4 text-white font-semibold rounded transition-all"
+          className="w-full py-4 font-semibold rounded-xl transition-all"
           style={{
-            background: `linear-gradient(to right, white 0%, white ${progress * 100}%, black ${progress * 100}%, black 100%)`
+            background: `linear-gradient(to right, rgba(255,255,255,.6) 0%, rgba(255,255,255,.6) ${progress * 100}%, #007a80 ${progress * 100}%, #007a80 100%)`
           }}
         >
-          <span style={{ color: progress > 0.5 ? 'black' : 'white', fontWeight: 'bold' }}>
+          <span style={{ color: progress > 0.5 ? '#1d1d1f' : 'white', fontWeight: 'bold' }}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </span>
         </button>
@@ -162,7 +162,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
   }
 
   return (
-    <div className="p-3 border border-black rounded-lg bg-white space-y-3">
+    <div className="p-3 glass-inset ring-1 ring-accent/40 space-y-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium">Set {set.setNumber}</span>
         <span className="text-xs text-secondary">Target {displayWeight(set.weight)} × {set.targetReps}</span>
@@ -197,25 +197,27 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           onChange={e => setRpe(parseFloat(e.target.value))}
           className="w-full h-2 rounded appearance-none cursor-pointer"
           style={{
-            background: `linear-gradient(to right, black 0%, black ${((rpe - 6) / 4) * 100}%, #f0f0f0 ${((rpe - 6) / 4) * 100}%, #f0f0f0 100%)`,
+            background: `linear-gradient(to right, #007a80 0%, #007a80 ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.7) ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.7) 100%)`,
             WebkitAppearance: 'none',
           }}
         />
         <style>{`
           input[type="range"]::-webkit-slider-thumb {
             appearance: none;
-            width: 16px;
-            height: 16px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: black;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,.25);
             cursor: pointer;
             border: none;
           }
           input[type="range"]::-moz-range-thumb {
-            width: 16px;
-            height: 16px;
+            width: 22px;
+            height: 22px;
             border-radius: 50%;
-            background: black;
+            background: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,.25);
             cursor: pointer;
             border: none;
           }
@@ -230,7 +232,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
       <div className="flex gap-2 pt-2">
         <button
           onClick={handleSubmit}
-          className="flex-1 py-2 bg-black text-white font-medium rounded transition-colors hover:bg-[#333333]"
+          className="btn-primary flex-1 py-2 font-medium transition-colors"
         >
           Done
         </button>
@@ -239,7 +241,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
             setLogging(false)
             resetInputs()
           }}
-          className="px-3 py-2 border border-divider rounded text-secondary hover:bg-divider transition-colors"
+          className="btn-glass px-4 py-2 text-secondary transition-colors"
         >
           ✕
         </button>

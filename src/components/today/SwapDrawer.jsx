@@ -67,7 +67,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
       />
 
       {/* Drawer */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-divider rounded-t-lg z-50 p-4 animate-slide-up max-h-[80vh] overflow-y-auto">
+      <div className="glass-float fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[80vh] overflow-y-auto">
         <h3 className="font-semibold mb-4">Swap Exercise</h3>
 
         {/* Built-in alternatives */}
@@ -86,7 +86,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                     movementType: exercise.movementType
                   })
                 }}
-                className="w-full p-3 text-left border border-divider rounded hover:bg-divider transition-colors"
+                className="glass-inset w-full p-3 text-left hover:bg-white/70 transition-colors"
               >
                 <div className="font-medium">{alt.name}</div>
                 <div className="text-sm text-secondary">
@@ -101,12 +101,12 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
         {!showCustomForm ? (
           <button
             onClick={() => setShowCustomForm(true)}
-            className="w-full p-3 text-left border border-black rounded hover:bg-black hover:text-white transition-colors font-medium mb-4"
+            className="btn-glass w-full p-3 text-left transition-colors font-medium mb-4"
           >
             + Create Alternative
           </button>
         ) : (
-          <div className="border border-divider rounded p-3 mb-4 space-y-3 bg-divider/30">
+          <div className="glass-inset p-3 mb-4 space-y-3">
             <div>
               <label className="text-sm font-medium block mb-1">Exercise Name</label>
               <input
@@ -114,7 +114,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                 value={customName}
                 onChange={e => setCustomName(e.target.value)}
                 placeholder="e.g., Dumbbell Bench Press"
-                className="w-full px-2 py-1 border border-divider rounded text-sm"
+                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
               />
             </div>
 
@@ -123,7 +123,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
               <select
                 value={customMovementType}
                 onChange={e => setCustomMovementType(e.target.value)}
-                className="w-full px-2 py-1 border border-divider rounded text-sm"
+                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
               >
                 <option value="compound_upper">Compound Upper</option>
                 <option value="compound_lower">Compound Lower</option>
@@ -138,7 +138,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                 value={customWeight}
                 onChange={e => setCustomWeight(parseFloat(e.target.value) || 0)}
                 step="0.5"
-                className="w-full px-2 py-1 border border-divider rounded text-sm"
+                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
               />
             </div>
 
@@ -146,13 +146,13 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
               <button
                 onClick={handleSaveCustom}
                 disabled={!customName.trim()}
-                className="flex-1 py-2 bg-black text-white rounded font-medium text-sm disabled:opacity-50 transition-colors hover:bg-[#333333]"
+                className="btn-primary flex-1 py-2 font-medium text-sm disabled:opacity-50 transition-colors"
               >
                 Save & Swap
               </button>
               <button
                 onClick={() => setShowCustomForm(false)}
-                className="flex-1 py-2 border border-divider rounded text-sm transition-colors hover:bg-divider"
+                className="btn-glass flex-1 py-2 text-sm transition-colors"
               >
                 Cancel
               </button>
@@ -162,7 +162,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
 
         <button
           onClick={onClose}
-          className="w-full py-2 border border-divider rounded text-secondary font-medium transition-colors hover:bg-divider"
+          className="btn-glass w-full py-2 text-secondary font-medium transition-colors"
         >
           Close
         </button>

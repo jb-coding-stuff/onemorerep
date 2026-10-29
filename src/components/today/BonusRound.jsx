@@ -26,7 +26,7 @@ export default function BonusRound({ onSelect, sessionLabel }) {
   return (
     <button
       onClick={handleAddBonus}
-      className="w-full mt-4 py-3 border-2 border-black rounded font-semibold transition-all hover:bg-black hover:text-white animate-fade-in"
+      className="btn-glass w-full mt-4 py-3 font-semibold transition-all animate-fade-in"
     >
       Add Bonus Round
     </button>

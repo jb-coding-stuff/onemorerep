@@ -364,8 +364,8 @@ export default function TodayTab({ onBack }) {
     return (
       <button
         onClick={finishWorkout}
-        className={`w-full py-4 font-semibold rounded transition-colors ${
-          isAllDone ? 'bg-black text-white hover:bg-[#333333]' : 'border border-black text-black hover:bg-divider'
+        className={`w-full py-4 font-semibold transition-colors ${
+          isAllDone ? 'btn-primary' : 'btn-glass'
         }`}
       >
         Finish Workout
@@ -392,7 +392,7 @@ export default function TodayTab({ onBack }) {
           <h2 className="text-lg font-bold">Today's Workout</h2>
         </div>
         {staleWorkout && (
-          <div className="mb-6 p-4 border border-black rounded space-y-3">
+          <div className="mb-6 p-4 glass-card space-y-3">
             <p className="text-sm">
               Unfinished <span className="font-semibold">{staleWorkout.selectedSession}</span> from
               your previous plan
@@ -402,13 +402,13 @@ export default function TodayTab({ onBack }) {
             <div className="flex gap-2">
               <button
                 onClick={resumeStaleWorkout}
-                className="flex-1 py-2 bg-black text-white rounded font-medium text-sm transition-colors hover:bg-[#333333]"
+                className="btn-primary flex-1 py-2 font-medium text-sm transition-colors"
               >
                 Resume
               </button>
               <button
                 onClick={closeStaleWorkout}
-                className="flex-1 py-2 border border-divider rounded text-sm transition-colors hover:bg-divider"
+                className="btn-glass flex-1 py-2 text-sm transition-colors"
               >
                 Close
               </button>
@@ -420,14 +420,12 @@ export default function TodayTab({ onBack }) {
             <button
               key={session.label}
               onClick={() => startSession(session.label)}
-              className={`w-full text-left p-4 rounded border transition-colors ${
-                session.label === suggestedSession
-                  ? 'bg-black text-white border-black'
-                  : 'bg-white text-black border-divider hover:bg-divider'
+              className={`glass-card w-full text-left px-5 py-4 transition-transform active:scale-[0.98] ${
+                session.label === suggestedSession ? 'ring-2 ring-accent' : ''
               }`}
             >
               <div className="font-semibold">{session.label}</div>
-              <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-gray-300' : 'text-secondary'}`}>
+              <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-accent font-medium' : 'text-secondary'}`}>
                 {session.exercises.length} exercises
                 {session.label === suggestedSession && ' · suggested'}
               </div>
@@ -516,14 +514,14 @@ export default function TodayTab({ onBack }) {
                 <button
                   onClick={() => idx > 0 && dispatch({ type: 'REORDER_EXERCISES', payload: { fromIndex: idx, toIndex: idx - 1 } })}
                   disabled={idx === 0}
-                  className="p-1 text-lg hover:bg-divider rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-lg btn-glass disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ↑
                 </button>
                 <button
                   onClick={() => idx < state.exercises.length - 1 && dispatch({ type: 'REORDER_EXERCISES', payload: { fromIndex: idx, toIndex: idx + 1 } })}
                   disabled={idx === state.exercises.length - 1}
-                  className="p-1 text-lg hover:bg-divider rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-lg btn-glass disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ↓
                 </button>
@@ -547,7 +545,7 @@ export default function TodayTab({ onBack }) {
               await clearActiveWorkout()
               dispatch({ type: 'SKIP_WORKOUT' })
             }}
-            className="w-full py-3 bg-divider text-black font-semibold rounded transition-colors hover:bg-[#d0d0d0] mt-3"
+            className="btn-glass w-full py-3 font-semibold text-secondary transition-colors mt-3"
           >
             {anySetDone ? 'Delete Workout' : 'Skip Workout'}
           </button>

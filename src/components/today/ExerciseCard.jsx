@@ -24,7 +24,7 @@ export default function ExerciseCard({
 
   return (
     <>
-      <div className="border border-divider rounded-lg p-4">
+      <div className="glass-card p-5">
         {/* Header */}
         <button
           onClick={() => setExpanded(!expanded)}
@@ -66,7 +66,7 @@ export default function ExerciseCard({
         {expanded && exercise.alternatives?.length > 0 && (
           <button
             onClick={() => setShowSwap(true)}
-            className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-divider rounded transition-colors"
+            className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/50 rounded-full transition-colors"
           >
             ⇄ Swap
           </button>
