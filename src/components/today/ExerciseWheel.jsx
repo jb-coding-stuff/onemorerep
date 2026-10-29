@@ -1,16 +1,31 @@
 import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 
 const AUTO_ADVANCE_DELAY_MS = 450
+// Within this distance of a card's centre position, dragging is damped so
+// the focused card feels magnetic.
+const DETENT_PX = 90
+const DETENT_MIN_FACTOR = 0.35
+const DRAG_THRESHOLD_PX = 6
+// How far a flick carries: projected distance = velocity (px/ms) × this.
+const FLICK_PROJECTION_MS = 220
+
+const easeOutQuint = t => 1 - (1 - t) ** 5
 
 /**
- * Vertical "wheel" of exercise cards: scroll-snaps so one card sits in the
- * middle in focus while neighbours tilt away, shrink and blur with distance.
+ * Vertical "wheel" of exercise cards: one card sits in the middle in focus
+ * while neighbours tilt away, shrink and blur with distance. Scrolling uses
+ * its own physics instead of native scroll-snap: drags are damped near a
+ * card's centre, and a release glides to the target card with an ease-out
+ * that slows as the card reaches the middle.
  * Tapping a blurred card rotates it into focus instead of interacting with it.
  */
 export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   const scrollerRef = useRef(null)
   const itemRefs = useRef([])
   const frameRef = useRef(0)
+  const animRef = useRef(0)
+  const dragRef = useRef(null)
+  const suppressClickRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState(focusIndex)
   const activeRef = useRef(focusIndex)
   const [spacer, setSpacer] = useState(0)
@@ -19,14 +34,15 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     frameRef.current = 0
     const scroller = scrollerRef.current
     if (!scroller) return
-    const box = scroller.getBoundingClientRect()
-    const center = box.top + box.height / 2
+    // Measure untransformed layout positions; bounding rects would include
+    // each card's own tilt/scale and never settle exactly at the centre.
+    const box = { height: scroller.clientHeight }
+    const center = scroller.scrollTop + box.height / 2
     let best = 0
     let bestOffset = Infinity
     itemRefs.current.forEach((el, i) => {
       if (!el) return
-      const r = el.getBoundingClientRect()
-      const offset = r.top + r.height / 2 - center
+      const offset = el.offsetTop + el.offsetHeight / 2 - center
       if (Math.abs(offset) < bestOffset) {
         bestOffset = Math.abs(offset)
         best = i
@@ -50,20 +66,62 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     if (!frameRef.current) frameRef.current = requestAnimationFrame(updateStyles)
   }, [updateStyles])
 
-  const scrollTo = useCallback((index, behavior) => {
-    itemRefs.current[index]?.scrollIntoView({ block: 'center', behavior })
+  /** scrollTop at which item i is centred. */
+  const snapTop = useCallback(i => {
+    const scroller = scrollerRef.current
+    const el = itemRefs.current[i]
+    if (!scroller || !el) return 0
+    return el.offsetTop + el.offsetHeight / 2 - scroller.clientHeight / 2
   }, [])
+
+  const nearestIndex = useCallback(top => {
+    let best = 0
+    itemRefs.current.forEach((el, i) => {
+      if (el && Math.abs(snapTop(i) - top) < Math.abs(snapTop(best) - top)) best = i
+    })
+    return best
+  }, [snapTop])
+
+  const stopAnimation = () => {
+    cancelAnimationFrame(animRef.current)
+    animRef.current = 0
+  }
+
+  const scrollTo = useCallback((index, behavior = 'smooth') => {
+    const scroller = scrollerRef.current
+    if (!scroller || !itemRefs.current[index]) return
+    stopAnimation()
+    const from = scroller.scrollTop
+    const to = snapTop(index)
+    if (behavior === 'auto' || Math.abs(to - from) < 1) {
+      scroller.scrollTop = to
+      scheduleUpdate()
+      return
+    }
+    // Longer glides for longer distances; the quintic ease-out spends most of
+    // its time decelerating into the centre.
+    const duration = Math.min(900, 380 + Math.abs(to - from) * 0.6)
+    const start = performance.now()
+    const step = now => {
+      const t = Math.min(1, (now - start) / duration)
+      scroller.scrollTop = from + (to - from) * easeOutQuint(t)
+      if (t < 1) animRef.current = requestAnimationFrame(step)
+      else animRef.current = 0
+    }
+    animRef.current = requestAnimationFrame(step)
+  }, [snapTop, scheduleUpdate])
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current
     const observer = new ResizeObserver(() => {
-      setSpacer(Math.max(0, scroller.clientHeight / 2 - 60))
+      setSpacer(Math.max(0, scroller.clientHeight / 2))
       scheduleUpdate()
     })
     observer.observe(scroller)
     return () => {
       observer.disconnect()
       cancelAnimationFrame(frameRef.current)
+      stopAnimation()
     }
   }, [scheduleUpdate])
 
@@ -81,11 +139,90 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   useEffect(() => {
     if (lastFocusRef.current === focusIndex) return
     lastFocusRef.current = focusIndex
-    const t = setTimeout(() => scrollTo(focusIndex, 'smooth'), AUTO_ADVANCE_DELAY_MS)
+    const t = setTimeout(() => scrollTo(focusIndex), AUTO_ADVANCE_DELAY_MS)
     return () => clearTimeout(t)
   }, [focusIndex, scrollTo])
 
   useEffect(scheduleUpdate, [items, scheduleUpdate])
+
+  // --- touch / pointer dragging with a magnetic centre ---
+
+  function onPointerDown(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return
+    suppressClickRef.current = false
+    if (e.target.closest('input, textarea, select')) return
+    stopAnimation()
+    dragRef.current = {
+      id: e.pointerId,
+      startY: e.clientY,
+      lastY: e.clientY,
+      dragging: false,
+      samples: [{ y: e.clientY, t: e.timeStamp }]
+    }
+  }
+
+  function onPointerMove(e) {
+    const drag = dragRef.current
+    if (!drag || drag.id !== e.pointerId) return
+    if (!drag.dragging) {
+      if (Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD_PX) return
+      drag.dragging = true
+      drag.lastY = e.clientY
+      scrollerRef.current.setPointerCapture?.(e.pointerId)
+    }
+    const scroller = scrollerRef.current
+    const delta = drag.lastY - e.clientY
+    drag.lastY = e.clientY
+    drag.samples.push({ y: e.clientY, t: e.timeStamp })
+    if (drag.samples.length > 6) drag.samples.shift()
+
+    // Damp movement close to a card's centre position (the "detent").
+    const top = scroller.scrollTop
+    const dist = Math.abs(top - snapTop(nearestIndex(top)))
+    const factor = dist >= DETENT_PX
+      ? 1
+      : DETENT_MIN_FACTOR + (1 - DETENT_MIN_FACTOR) * (dist / DETENT_PX)
+    scroller.scrollTop = top + delta * factor
+  }
+
+  function onPointerUp(e) {
+    const drag = dragRef.current
+    if (!drag || drag.id !== e.pointerId) return
+    dragRef.current = null
+    if (!drag.dragging) return
+    // The click that follows a drag must not toggle or open anything; the
+    // flag is cleared on the next pointerdown.
+    suppressClickRef.current = true
+
+    // Only the last ~100ms count, so pausing before lifting the finger
+    // releases without a flick.
+    const recent = drag.samples.filter(p => e.timeStamp - p.t < 100)
+    let velocity = 0 // px/ms, positive = content moves up
+    if (recent.length >= 2) {
+      const first = recent[0]
+      const last = recent[recent.length - 1]
+      velocity = (first.y - last.y) / Math.max(1, last.t - first.t)
+    }
+    const projected = scrollerRef.current.scrollTop + velocity * FLICK_PROJECTION_MS
+    scrollTo(nearestIndex(projected))
+  }
+
+  // Trackpad / mouse wheel: one card per gesture.
+  const wheelLockRef = useRef(0)
+  function onWheel(e) {
+    e.preventDefault()
+    const now = performance.now()
+    if (now - wheelLockRef.current < 350 || Math.abs(e.deltaY) < 4) return
+    wheelLockRef.current = now
+    const dir = Math.sign(e.deltaY)
+    const next = Math.max(0, Math.min(items.length - 1, activeRef.current + dir))
+    scrollTo(next)
+  }
+  useEffect(() => {
+    const scroller = scrollerRef.current
+    scroller.addEventListener('wheel', onWheel, { passive: false })
+    return () => scroller.removeEventListener('wheel', onWheel)
+  })
 
   itemRefs.current.length = items.length
 
@@ -93,9 +230,19 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     <div
       ref={scrollerRef}
       onScroll={scheduleUpdate}
-      className="flex-1 min-h-0 overflow-y-auto px-4 snap-y snap-mandatory"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onClickCapture={e => {
+        if (suppressClickRef.current) {
+          e.preventDefault()
+          e.stopPropagation()
+        }
+      }}
+      className="relative flex-1 min-h-0 overflow-hidden px-4"
       style={{
-        scrollbarWidth: 'none',
+        touchAction: 'none',
         WebkitMaskImage: 'linear-gradient(transparent, #000 40px, #000 calc(100% - 40px), transparent)',
         maskImage: 'linear-gradient(transparent, #000 40px, #000 calc(100% - 40px), transparent)'
       }}
@@ -105,13 +252,14 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
         <div
           key={item.exerciseId + ':' + i}
           ref={el => { itemRefs.current[i] = el }}
-          className="snap-center py-8"
+          data-wheel-item
+          className="py-8"
           style={{ transformOrigin: 'center center', willChange: 'transform, filter, opacity' }}
           onClickCapture={e => {
             if (i === activeIndex) return
             e.preventDefault()
             e.stopPropagation()
-            scrollTo(i, 'smooth')
+            scrollTo(i)
           }}
         >
           {renderItem(item, i, i === activeIndex)}
