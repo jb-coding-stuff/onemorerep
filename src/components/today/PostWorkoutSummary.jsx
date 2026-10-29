@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { logWorkout } from '../../db/workoutLog'
-import { updateProgressionState, getAllProgressionStates } from '../../db/progression'
-import { updateProgressionAfterWorkout } from '../../utils/progressionEngine'
+import { getAllProgressionStates } from '../../db/progression'
+import { syncLiveWorkout, updateProgressionFromWorkout } from '../../db/liveWorkout'
 import { db } from '../../db/db'
 import { pushWorkout, pushProgressionStates } from '../../db/sync'
 
-export default function PostWorkoutSummary({ exercises, sessionLabel, startTime, onDone, onCancel }) {
+export default function PostWorkoutSummary({ exercises, sessionLabel, startTime, logId, onDone, onCancel }) {
   const [saving, setSaving] = useState(false)
   const { displayWeight } = useSettings()
 
@@ -19,7 +19,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
     try {
       // Prepare workout log entry
       const workoutEntry = {
-        date: new Date().toISOString(),
+        date: new Date(startTime).toISOString(),
         sessionLabel,
         durationSeconds,
         exercises: logged.map(ex => ({
@@ -38,37 +38,18 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         }))
       }
 
-      // Save workout log
-      await logWorkout(workoutEntry)
+      // Sets were already logged live; settle any pending write and keep its id.
+      const liveId = await syncLiveWorkout({ startTime, selectedSession: sessionLabel, exercises, logId })
+      const id = liveId ?? await logWorkout(workoutEntry)
+      if (liveId != null) await db.workoutLog.put({ ...workoutEntry, id })
 
-      // Update progression states (skip bonus exercises)
-      const program = await db.program.toArray().then(p => p[0])
-      if (program) {
-        for (const exercise of logged) {
-          const programExercise = (program.sessions?.flatMap(s => s.exercises || []) || [])
-            .find(e => e?.exerciseId === exercise.exerciseId)
-
-          if (programExercise) {
-            const lastSet = exercise.sets.filter(s => s.completed).at(-1)
-            const updated = updateProgressionAfterWorkout(
-              {
-                exerciseId: exercise.exerciseId,
-                currentWeight: lastSet?.weight ?? 0
-              },
-              programExercise,
-              exercise.sets.filter(s => s.completed)
-            )
-
-            await updateProgressionState(exercise.exerciseId, updated)
-          }
-        }
-      }
+      await updateProgressionFromWorkout(logged)
 
       // Save last session label
       await db.settings.put({ key: 'lastSessionLabel', value: sessionLabel })
 
       // Sync to Supabase in background (fire and forget)
-      const savedWorkout = await db.workoutLog.orderBy('date').last()
+      const savedWorkout = await db.workoutLog.get(id)
       const allProgressions = await getAllProgressionStates()
       if (savedWorkout) pushWorkout(savedWorkout)
       if (allProgressions.length) pushProgressionStates(allProgressions)
