@@ -13,7 +13,7 @@ export const REGION_COLORS = {
 }
 
 const INK = '#f5f5f7'
-const ACCENT = 'var(--accent)'
+const ACCENT = 'rgba(255,255,255,0.9)'
 const MUTED = '#8e8e93'
 const GRID = 'rgba(255,255,255,0.08)'
 
@@ -57,7 +57,7 @@ export function BarList({ data, valueSuffix = '' }) {
             <span className="tabular-nums text-secondary">{d.value}{valueSuffix}</span>
           </div>
           <div className="h-2 rounded-full bg-white/[.1] overflow-hidden">
-            <div className="h-full rounded-full bg-accent" style={{ width: `${(d.value / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-white/80" style={{ width: `${(d.value / max) * 100}%` }} />
           </div>
         </div>
       ))}

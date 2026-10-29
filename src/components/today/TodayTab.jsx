@@ -421,11 +421,11 @@ export default function TodayTab({ onBack }) {
               key={session.label}
               onClick={() => startSession(session.label)}
               className={`glass-card w-full text-left px-5 py-4 transition-transform active:scale-[0.98] ${
-                session.label === suggestedSession ? 'ring-2 ring-accent' : ''
+                session.label === suggestedSession ? 'ring-1 ring-white/25' : ''
               }`}
             >
               <div className="font-semibold">{session.label}</div>
-              <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-accent font-medium' : 'text-secondary'}`}>
+              <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-[color:var(--accent-text)] font-medium' : 'text-secondary'}`}>
                 {session.exercises.length} exercises
                 {session.label === suggestedSession && ' · suggested'}
               </div>

@@ -179,7 +179,7 @@ export default function MeTab({ onBack }) {
                   onClick={() => handleSwitchPack(pack)}
                   disabled={isActive || !!switchingTo}
                   className={`glass-inset w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors disabled:cursor-default ${
-                    isActive ? 'ring-2 ring-accent bg-white/[.06]' : 'hover:bg-white/[.08]'
+                    isActive ? 'ring-1 ring-white/30 bg-white/[.06]' : 'hover:bg-white/[.08]'
                   } ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
                 >
                   <div className="min-w-0">
@@ -188,7 +188,7 @@ export default function MeTab({ onBack }) {
                       {pack.sessions.length} days · {pack.sessions.map(s => s.label).join(', ')}
                     </div>
                   </div>
-                  <span className="text-sm shrink-0 text-accent font-semibold">
+                  <span className="text-sm shrink-0 font-semibold">
                     {isSwitching ? 'Switching…' : isActive ? '✓' : ''}
                   </span>
                 </button>
