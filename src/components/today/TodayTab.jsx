@@ -7,6 +7,8 @@ import { computeSessionWeight, updateProgressionAfterWorkout } from '../../utils
 import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
 import ExerciseCard from './ExerciseCard'
 import PostWorkoutSummary from './PostWorkoutSummary'
+import ExerciseWheel from './ExerciseWheel'
+import { BackIcon, ListIcon, FocusIcon, IconButton } from '../icons'
 
 const initialState = {
   mode: 'picking', // 'picking' | 'logging' | 'summary'
@@ -323,13 +325,11 @@ export default function TodayTab({ onBack }) {
   if (state.mode === 'picking' && suggestedSession) {
     return (
       <div className="px-4 flex flex-col min-h-full" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
-        <div className="flex items-center justify-between mb-8">
-          <h2 className="text-lg font-bold">Today's Workout</h2>
+        <div className="flex items-center gap-2 mb-8">
           {onBack && (
-            <button onClick={onBack} className="px-3 py-2 text-sm font-medium hover:bg-divider rounded transition-colors">
-              Back
-            </button>
+            <IconButton label="Back" onClick={onBack}><BackIcon /></IconButton>
           )}
+          <h2 className="text-lg font-bold">Today's Workout</h2>
         </div>
         {staleWorkout && (
           <div className="mb-6 p-4 border border-black rounded space-y-3">
@@ -392,37 +392,59 @@ export default function TodayTab({ onBack }) {
     )
   }
 
-  // Find the first incomplete exercise
   const firstIncompleteExIdx = state.exercises.findIndex(ex => ex.setsCompleted < ex.sets.length)
-  const currentExercise = firstIncompleteExIdx >= 0 ? state.exercises[firstIncompleteExIdx] : state.exercises[0]
+  const focusIndex = firstIncompleteExIdx >= 0 ? firstIncompleteExIdx : Math.max(0, state.exercises.length - 1)
+  const doneCount = state.exercises.filter(ex => ex.setsCompleted === ex.sets.length).length
+
+  function renderExerciseCard(exercise, idx, isActive = true) {
+    return (
+      <ExerciseCard
+        exercise={exercise}
+        exerciseIndex={idx}
+        isActive={isActive}
+        progressionRules={progressionRules}
+        onSetComplete={handleSetComplete}
+        onSuggestWeight={(setIdx, newWeight) =>
+          dispatch({
+            type: 'SUGGEST_WEIGHT',
+            payload: { exerciseIndex: idx, setIndex: setIdx, newWeight }
+          })
+        }
+        onSwap={(newExercise) => handleSwap(idx, newExercise)}
+        onBonusRound={(bonusEx) =>
+          dispatch({
+            type: 'ADD_BONUS_ROUND',
+            payload: { bonusExercise: bonusEx }
+          })
+        }
+        isAllDone={isAllDone && !exercise.isBonus}
+      />
+    )
+  }
+
+  function workoutHeader(subtitle, toggleIcon, toggleLabel) {
+    return (
+      <div className="flex items-center gap-2">
+        {onBack && (
+          <IconButton label="Back" onClick={() => onBack()}><BackIcon /></IconButton>
+        )}
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg font-bold truncate">{state.selectedSession}</h2>
+          <p className="text-sm text-secondary">{subtitle}</p>
+        </div>
+        <IconButton label={toggleLabel} onClick={() => dispatch({ type: 'TOGGLE_OVERVIEW' })}>
+          {toggleIcon}
+        </IconButton>
+      </div>
+    )
+  }
 
   if (state.isOverviewMode) {
     // Overview mode: show all exercises
     return (
       <div className="pb-20 px-4 py-4" style={{ paddingTop: '1.5rem' }}>
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex-1">
-            <h2 className="text-lg font-bold">{state.selectedSession}</h2>
-            <p className="text-sm text-secondary mt-1">
-              {state.exercises.filter(ex => ex.setsCompleted === ex.sets.length).length}/{state.exercises.length} exercises done
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => dispatch({ type: 'TOGGLE_OVERVIEW' })}
-              className="px-3 py-2 text-sm font-medium hover:bg-divider rounded transition-colors"
-            >
-              ✕
-            </button>
-            {onBack && (
-              <button
-                onClick={() => onBack()}
-                className="px-3 py-2 text-sm font-medium hover:bg-divider rounded transition-colors"
-              >
-                Back
-              </button>
-            )}
-          </div>
+        <div className="mb-6">
+          {workoutHeader(`${doneCount}/${state.exercises.length} exercises done`, <FocusIcon />, 'Focus view')}
         </div>
 
         <div className="space-y-3">
@@ -445,26 +467,7 @@ export default function TodayTab({ onBack }) {
                 </button>
               </div>
               <div className="flex-1">
-                <ExerciseCard
-                  exercise={exercise}
-                  exerciseIndex={idx}
-                  progressionRules={progressionRules}
-                  onSetComplete={handleSetComplete}
-                  onSuggestWeight={(setIdx, newWeight) =>
-                    dispatch({
-                      type: 'SUGGEST_WEIGHT',
-                      payload: { exerciseIndex: idx, setIndex: setIdx, newWeight }
-                    })
-                  }
-                  onSwap={(newExercise) => handleSwap(idx, newExercise)}
-                  onBonusRound={(bonusEx) =>
-                    dispatch({
-                      type: 'ADD_BONUS_ROUND',
-                      payload: { bonusExercise: bonusEx }
-                    })
-                  }
-                  isAllDone={isAllDone && !state.exercises[idx].isBonus}
-                />
+                {renderExerciseCard(exercise, idx)}
               </div>
             </div>
           ))}
@@ -494,66 +497,28 @@ export default function TodayTab({ onBack }) {
     )
   }
 
-  // Default view: show only current set
+  // Focus view: exercises on a wheel, the centred one in focus
   return (
-    <div className="pb-20 px-4 flex flex-col min-h-full" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex-1">
-          <h2 className="text-lg font-bold">{state.selectedSession}</h2>
-          <p className="text-sm text-secondary mt-1">
-            {state.exercises.filter(ex => ex.setsCompleted === ex.sets.length).length}/{state.exercises.length} exercises
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => dispatch({ type: 'TOGGLE_OVERVIEW' })}
-            className="px-3 py-2 text-sm font-medium hover:bg-divider rounded transition-colors"
-          >
-            Overview
-          </button>
-          {onBack && (
-            <button
-              onClick={() => onBack()}
-              className="px-3 py-2 text-sm font-medium hover:bg-divider rounded transition-colors"
-            >
-              Back
-            </button>
-          )}
-        </div>
+    <div className="h-full flex flex-col">
+      <div className="px-4 pb-2" style={{ paddingTop: '1.5rem' }}>
+        {workoutHeader(`${doneCount}/${state.exercises.length} exercises`, <ListIcon />, 'Overview')}
       </div>
 
-      {currentExercise && (
-        <div className="flex-1 flex flex-col justify-center">
-          <ExerciseCard
-            exercise={currentExercise}
-            exerciseIndex={firstIncompleteExIdx >= 0 ? firstIncompleteExIdx : 0}
-            progressionRules={progressionRules}
-            onSetComplete={handleSetComplete}
-            onSuggestWeight={(setIdx, newWeight) =>
-              dispatch({
-                type: 'SUGGEST_WEIGHT',
-                payload: { exerciseIndex: firstIncompleteExIdx >= 0 ? firstIncompleteExIdx : 0, setIndex: setIdx, newWeight }
-              })
-            }
-            onSwap={(newExercise) => handleSwap(firstIncompleteExIdx >= 0 ? firstIncompleteExIdx : 0, newExercise)}
-            onBonusRound={(bonusEx) =>
-              dispatch({
-                type: 'ADD_BONUS_ROUND',
-                payload: { bonusExercise: bonusEx }
-              })
-            }
-            isAllDone={isAllDone && !currentExercise.isBonus}
-          />
-        </div>
-      )}
+      <ExerciseWheel
+        items={state.exercises}
+        focusIndex={focusIndex}
+        renderItem={renderExerciseCard}
+      />
 
       {isAllDone && (
-        <button
-          onClick={() => dispatch({ type: 'FINISH_WORKOUT' })}
-          className="w-full py-4 bg-black text-white font-semibold rounded transition-colors hover:bg-[#333333]"
-        >
-          View Summary
-        </button>
+        <div className="px-4 pt-2" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom))' }}>
+          <button
+            onClick={() => dispatch({ type: 'FINISH_WORKOUT' })}
+            className="w-full py-4 bg-black text-white font-semibold rounded transition-colors hover:bg-[#333333]"
+          >
+            View Summary
+          </button>
+        </div>
       )}
     </div>
   )
