@@ -13,7 +13,8 @@ export default function ExerciseCard({
   onSuggestWeight,
   onSwap,
   onBonusRound,
-  isAllDone
+  isAllDone,
+  isActive = true
 }) {
   const [expanded, setExpanded] = useState(true)
   const [showSwap, setShowSwap] = useState(false)
@@ -46,6 +47,7 @@ export default function ExerciseCard({
                 setIndex={setIdx}
                 exerciseIndex={exerciseIndex}
                 exercise={exercise}
+                isActiveCard={isActive}
                 onComplete={(reps, rpe, weight) => {
                   onSetComplete(exerciseIndex, setIdx, reps, rpe, weight)
 

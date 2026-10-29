@@ -42,7 +42,7 @@ function Stepper({ label, value, touched, onChange, onStep, inputMode }) {
   )
 }
 
-export default function SetRow({ set, setIndex, exerciseIndex, exercise, onComplete }) {
+export default function SetRow({ set, setIndex, exerciseIndex, exercise, onComplete, isActiveCard = true }) {
   const [logging, setLogging] = useState(false)
   const [reps, setReps] = useState(String(set.targetReps))
   const [weight, setWeight] = useState(formatNumber(set.weight || 0))
@@ -55,12 +55,12 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
   const resting = restTimer.active && restTimer.timerKey === timerKey
   const { setInlineKey } = restTimer
 
-  // Tell the app-wide timer bar this set is showing the countdown itself.
+  // Tell the app-wide timer bar this set is showing the countdown in focus.
   useEffect(() => {
-    if (!resting) return
+    if (!resting || !isActiveCard) return
     setInlineKey(timerKey)
     return () => setInlineKey(k => (k === timerKey ? null : k))
-  }, [resting, timerKey, setInlineKey])
+  }, [resting, isActiveCard, timerKey, setInlineKey])
 
   // Prevent scrolling when logging set
   useEffect(() => {
