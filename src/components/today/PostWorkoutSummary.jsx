@@ -121,7 +121,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
           <button
             onClick={onCancel}
             disabled={saving}
-            className="w-full py-3 mt-2 text-sm font-medium text-secondary rounded-full hover:bg-white/50 transition-colors"
+            className="w-full py-3 mt-2 text-sm font-medium text-secondary rounded-full hover:bg-white/[.06] transition-colors"
           >
             Back to workout
           </button>

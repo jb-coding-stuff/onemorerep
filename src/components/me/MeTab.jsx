@@ -179,7 +179,7 @@ export default function MeTab({ onBack }) {
                   onClick={() => handleSwitchPack(pack)}
                   disabled={isActive || !!switchingTo}
                   className={`glass-inset w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors disabled:cursor-default ${
-                    isActive ? 'ring-2 ring-accent bg-white/80' : 'hover:bg-white/70'
+                    isActive ? 'ring-2 ring-accent bg-white/[.06]' : 'hover:bg-white/[.08]'
                   } ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
                 >
                   <div className="min-w-0">
@@ -247,7 +247,7 @@ export default function MeTab({ onBack }) {
               onChange={e => setImportText(e.target.value)}
               placeholder='{"packId":"my_plan","name":"My Plan","sessions":[...]}'
               rows={6}
-              className="w-full px-3 py-2 bg-white/70 border border-white rounded-xl text-xs font-mono"
+              className="w-full px-3 py-2 bg-white/[.08] border border-white/10 rounded-xl text-xs font-mono"
             />
             {importError && (
               <p className="text-xs glass-inset p-3 break-words">{importError}</p>
@@ -275,7 +275,7 @@ export default function MeTab({ onBack }) {
       <div className="pb-10">
         <button
           onClick={handleReset}
-          className="btn-glass w-full py-3 font-medium text-[#8f3e12] transition-colors"
+          className="btn-glass w-full py-3 font-medium text-red-400 transition-colors"
         >
           Reset All Data
         </button>
