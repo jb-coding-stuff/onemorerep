@@ -392,7 +392,7 @@ export default function TodayTab({ onBack }) {
           <h2 className="text-lg font-bold">Today's Workout</h2>
         </div>
         {staleWorkout && (
-          <div className="mb-6 p-4 glass-card space-y-3">
+          <div className="mb-6 pb-5 border-b border-white/[.06] space-y-3">
             <p className="text-sm">
               Unfinished <span className="font-semibold">{staleWorkout.selectedSession}</span> from
               your previous plan
@@ -415,14 +415,12 @@ export default function TodayTab({ onBack }) {
             </div>
           </div>
         )}
-        <div className="space-y-3">
+        <div>
           {sessions.map(session => (
             <button
               key={session.label}
               onClick={() => startSession(session.label)}
-              className={`glass-card w-full text-left px-5 py-4 transition-transform active:scale-[0.98] ${
-                session.label === suggestedSession ? 'ring-1 ring-white/25' : ''
-              }`}
+              className="w-full text-left py-4 border-b border-white/[.06] last:border-b-0 active:opacity-60 transition-opacity"
             >
               <div className="font-semibold">{session.label}</div>
               <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-[color:var(--accent-text)] font-medium' : 'text-secondary'}`}>
@@ -456,12 +454,13 @@ export default function TodayTab({ onBack }) {
   const focusIndex = firstIncompleteExIdx >= 0 ? firstIncompleteExIdx : Math.max(0, state.exercises.length - 1)
   const doneCount = state.exercises.filter(ex => ex.setsCompleted === ex.sets.length).length
 
-  function renderExerciseCard(exercise, idx, isActive = true) {
+  function renderExerciseCard(exercise, idx, isActive = true, plain = false) {
     return (
       <ExerciseCard
         exercise={exercise}
         exerciseIndex={idx}
         isActive={isActive}
+        plain={plain}
         progressionRules={progressionRules}
         onSetComplete={handleSetComplete}
         onSuggestWeight={(setIdx, newWeight) =>
@@ -514,20 +513,20 @@ export default function TodayTab({ onBack }) {
                 <button
                   onClick={() => idx > 0 && dispatch({ type: 'REORDER_EXERCISES', payload: { fromIndex: idx, toIndex: idx - 1 } })}
                   disabled={idx === 0}
-                  className="w-9 h-9 flex items-center justify-center text-lg btn-glass disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-lg text-secondary rounded-full hover:bg-white/[.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ↑
                 </button>
                 <button
                   onClick={() => idx < state.exercises.length - 1 && dispatch({ type: 'REORDER_EXERCISES', payload: { fromIndex: idx, toIndex: idx + 1 } })}
                   disabled={idx === state.exercises.length - 1}
-                  className="w-9 h-9 flex items-center justify-center text-lg btn-glass disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  className="w-9 h-9 flex items-center justify-center text-lg text-secondary rounded-full hover:bg-white/[.06] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
                   ↓
                 </button>
               </div>
               <div className="flex-1">
-                {renderExerciseCard(exercise, idx)}
+                {renderExerciseCard(exercise, idx, true, true)}
               </div>
             </div>
           ))}
@@ -545,7 +544,7 @@ export default function TodayTab({ onBack }) {
               await clearActiveWorkout()
               dispatch({ type: 'SKIP_WORKOUT' })
             }}
-            className="btn-glass w-full py-3 font-semibold text-secondary transition-colors mt-3"
+            className="w-full py-3 text-sm font-medium text-secondary hover:text-[color:var(--ink)] transition-colors mt-3"
           >
             {anySetDone ? 'Delete Workout' : 'Skip Workout'}
           </button>

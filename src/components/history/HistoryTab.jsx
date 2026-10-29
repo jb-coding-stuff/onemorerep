@@ -41,7 +41,7 @@ export default function HistoryTab({ onBack }) {
       ) : workouts.length === 0 ? (
         <p className="text-secondary">No workouts yet. Finish a workout to see it here.</p>
       ) : view === 'workouts' ? (
-        <div className="pb-10 space-y-3">
+        <div className="pb-10">
           {workouts.map(workout => (
             <WorkoutEntry key={workout.id} entry={workout} />
           ))}

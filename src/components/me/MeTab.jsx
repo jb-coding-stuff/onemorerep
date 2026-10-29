@@ -128,7 +128,7 @@ export default function MeTab({ onBack }) {
       </div>
 
       {/* Rest Timers */}
-      <div className="glass-card p-5 space-y-4">
+      <div className="pt-2 space-y-4">
         <h2 className="text-sm font-semibold">Rest Timers</h2>
 
         {[
@@ -140,14 +140,14 @@ export default function MeTab({ onBack }) {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => adjust(type, -15)}
-                className="btn-glass w-9 h-9 flex items-center justify-center transition-colors text-lg"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-lg text-secondary hover:bg-white/[.06] transition-colors"
               >
                 −
               </button>
               <span className="text-sm font-medium w-10 text-center">{formatDuration(val)}</span>
               <button
                 onClick={() => adjust(type, 15)}
-                className="btn-glass w-9 h-9 flex items-center justify-center transition-colors text-lg"
+                className="w-9 h-9 flex items-center justify-center rounded-full text-lg text-secondary hover:bg-white/[.06] transition-colors"
               >
                 +
               </button>
@@ -167,7 +167,7 @@ export default function MeTab({ onBack }) {
 
       {/* Training Plan */}
       {packs.length > 0 && (
-        <div className="glass-card p-5 space-y-3">
+        <div className="pt-6 border-t border-white/[.06] space-y-1">
           <h2 className="text-sm font-semibold">Training Plan</h2>
           <div className="space-y-2">
             {packs.map(pack => {
@@ -178,8 +178,8 @@ export default function MeTab({ onBack }) {
                   key={pack.packId}
                   onClick={() => handleSwitchPack(pack)}
                   disabled={isActive || !!switchingTo}
-                  className={`glass-inset w-full flex items-center justify-between gap-3 px-4 py-3 text-left transition-colors disabled:cursor-default ${
-                    isActive ? 'ring-1 ring-white/30 bg-white/[.06]' : 'hover:bg-white/[.08]'
+                  className={`w-full flex items-center justify-between gap-3 py-3 border-b border-white/[.06] last:border-b-0 text-left transition-opacity disabled:cursor-default ${
+                    isActive ? '' : 'opacity-60 hover:opacity-100'
                   } ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
                 >
                   <div className="min-w-0">
@@ -196,10 +196,10 @@ export default function MeTab({ onBack }) {
             })}
           </div>
           {switchError && (
-            <p className="text-xs glass-inset p-3 break-words">{switchError}</p>
+            <p className="text-xs text-red-400 break-words">{switchError}</p>
           )}
           {offlineSwitch && (
-            <div className="text-xs glass-inset p-3 space-y-2">
+            <div className="text-xs text-secondary space-y-2">
               <p>
                 Switched on this device only — the cloud couldn't be reached. The app may
                 switch back the next time it opens online; if so, just switch again.
@@ -220,7 +220,7 @@ export default function MeTab({ onBack }) {
         <button
           onClick={handleLoadProgram}
           disabled={loading}
-          className="btn-glass w-full py-3 font-medium transition-colors disabled:opacity-50"
+          className="w-full py-4 text-left font-medium border-t border-white/[.06] transition-opacity active:opacity-60 disabled:opacity-50"
         >
           {loading ? 'Loading Program...' : 'Load Default Program'}
         </button>
@@ -231,7 +231,7 @@ export default function MeTab({ onBack }) {
         {!showImport ? (
           <button
             onClick={() => setShowImport(true)}
-            className="btn-glass w-full py-3 font-medium transition-colors"
+            className="w-full py-4 text-left font-medium border-t border-white/[.06] transition-opacity active:opacity-60"
           >
             Import Plan (JSON)
           </button>
@@ -250,7 +250,7 @@ export default function MeTab({ onBack }) {
               className="w-full px-3 py-2 bg-white/[.08] border border-white/10 rounded-xl text-xs font-mono"
             />
             {importError && (
-              <p className="text-xs glass-inset p-3 break-words">{importError}</p>
+              <p className="text-xs text-red-400 break-words">{importError}</p>
             )}
             <div className="flex gap-2">
               <button
@@ -275,7 +275,7 @@ export default function MeTab({ onBack }) {
       <div className="pb-10">
         <button
           onClick={handleReset}
-          className="btn-glass w-full py-3 font-medium text-red-400 transition-colors"
+          className="w-full py-4 text-left font-medium text-red-400 border-t border-white/[.06] transition-opacity active:opacity-60"
         >
           Reset All Data
         </button>

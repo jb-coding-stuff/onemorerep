@@ -17,7 +17,7 @@ export default function WorkoutEntry({ entry }) {
   const totalSets = exercises.reduce((s, ex) => s + ex.done.length, 0)
 
   return (
-    <div className="glass-card px-4">
+    <div className="border-b border-white/[.06]">
       <button
         onClick={() => setExpanded(!expanded)}
         className="w-full text-left py-4 flex items-center gap-3"
@@ -37,9 +37,9 @@ export default function WorkoutEntry({ entry }) {
       </button>
 
       {expanded && (
-        <div className="pb-4 space-y-3">
+        <div className="pb-5 space-y-4">
           {exercises.map((exercise, idx) => (
-            <div key={idx} className="p-3 glass-inset">
+            <div key={idx}>
               <div className="font-medium text-sm mb-2">
                 {exercise.name}
                 {exercise.wasSwapped && <span className="text-secondary font-normal"> · swapped</span>}
