@@ -71,7 +71,7 @@ function AppContent() {
   }, [])
 
   if (!loaded || onboarded === null) {
-    return <div className="w-full h-full flex items-center justify-center bg-white">Loading...</div>
+    return <div className="w-full h-full flex items-center justify-center">Loading...</div>
   }
 
   if (!onboarded) {
@@ -81,7 +81,7 @@ function AppContent() {
   return (
     // Scroll area starts below the status bar / Dynamic Island so content never
     // scrolls under it (iOS blurs that region in standalone mode).
-    <div className="flex flex-col h-full w-full bg-white" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+    <div className="flex flex-col h-full w-full" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
       <main className="flex-1 overflow-y-auto">
         {activeTab === null && <HomeScreen onNavigate={setActiveTab} />}
         {activeTab === 'today' && <TodayTab onBack={() => setActiveTab(null)} />}

@@ -65,12 +65,12 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-end">
-      <div className="w-full bg-white rounded-t-2xl p-6 pb-10 max-h-[80vh] overflow-y-auto animate-slide-up">
+    <div className="fixed inset-0 bg-black/20 z-50 flex items-end">
+      <div className="glass-float w-full rounded-t-3xl p-6 pb-10 max-h-[80vh] overflow-y-auto animate-slide-up">
         <h2 className="text-2xl font-bold mb-6">Workout Complete!</h2>
 
         {/* Duration */}
-        <div className="mb-6 p-4 bg-divider rounded">
+        <div className="mb-6 p-4 glass-inset">
           <div className="text-sm text-secondary">Duration</div>
           <div className="text-2xl font-bold">{minutes} min</div>
         </div>
@@ -81,7 +81,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
           {logged.map(ex => {
             const done = ex.sets.filter(s => s.completed)
             return (
-              <div key={ex.exerciseId} className="p-3 border border-divider rounded">
+              <div key={ex.exerciseId} className="p-3 glass-inset">
                 <div className="font-medium">{ex.name}</div>
                 <div className="text-sm text-secondary mt-1">
                   {done.map(s => `${s.actualReps}×${displayWeight(s.weight)}`).join(' · ')}
@@ -102,7 +102,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
             {exercises
               .filter(ex => ex.isBonus)
               .map((ex, idx) => (
-                <div key={idx} className="p-3 border border-divider rounded opacity-75">
+                <div key={idx} className="p-3 glass-inset opacity-75">
                   <div className="font-medium text-sm">{ex.name}</div>
                 </div>
               ))}
@@ -113,7 +113,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         <button
           onClick={handleSave}
           disabled={saving}
-          className="w-full py-4 bg-black text-white font-semibold rounded transition-colors hover:bg-[#333333] disabled:opacity-50"
+          className="btn-primary w-full py-4 font-semibold transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Workout'}
         </button>
@@ -121,7 +121,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
           <button
             onClick={onCancel}
             disabled={saving}
-            className="w-full py-3 mt-2 text-sm font-medium text-secondary hover:bg-divider rounded transition-colors"
+            className="w-full py-3 mt-2 text-sm font-medium text-secondary rounded-full hover:bg-white/50 transition-colors"
           >
             Back to workout
           </button>

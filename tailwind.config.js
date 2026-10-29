@@ -7,12 +7,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-        heading: ['Commissioner', 'sans-serif']
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI"', 'system-ui', 'sans-serif'],
+        heading: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"Segoe UI"', 'system-ui', 'sans-serif']
       },
       colors: {
-        divider: '#F0F0F0',
-        secondary: '#999999'
+        divider: '#dde3ea',
+        secondary: '#6e6e73',
+        accent: '#007a80'
       }
     }
   },

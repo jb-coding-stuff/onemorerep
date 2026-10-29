@@ -21,13 +21,14 @@ export default function HistoryTab({ onBack }) {
         <h1 className="text-2xl font-bold">History</h1>
       </div>
 
-      <div className="flex gap-1 p-1 bg-[#f1f1ef] rounded-lg mb-4">
+      <div className="glass-segmented mb-4">
         {VIEWS.map(v => (
           <button
             key={v.id}
             onClick={() => setView(v.id)}
-            className={`flex-1 py-2 text-sm rounded-md transition-colors ${
-              view === v.id ? 'bg-white font-semibold shadow-sm' : 'text-secondary'
+            aria-pressed={view === v.id}
+            className={`flex-1 py-2 text-sm transition-colors ${
+              view === v.id ? 'font-semibold' : 'text-secondary'
             }`}
           >
             {v.label}
@@ -40,7 +41,7 @@ export default function HistoryTab({ onBack }) {
       ) : workouts.length === 0 ? (
         <p className="text-secondary">No workouts yet. Finish a workout to see it here.</p>
       ) : view === 'workouts' ? (
-        <div className="pb-10">
+        <div className="pb-10 space-y-3">
           {workouts.map(workout => (
             <WorkoutEntry key={workout.id} entry={workout} />
           ))}

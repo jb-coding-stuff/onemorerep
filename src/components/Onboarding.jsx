@@ -21,7 +21,7 @@ export default function Onboarding({ onComplete }) {
   }
 
   return (
-    <div className="w-full h-full flex items-center justify-center bg-white">
+    <div className="w-full h-full flex items-center justify-center">
       <div className="max-w-md w-full px-6">
         {step === 0 && (
           <div className="text-center space-y-8">
@@ -32,7 +32,7 @@ export default function Onboarding({ onComplete }) {
 
             <button
               onClick={() => setStep(1)}
-              className="w-full py-3 bg-black text-white font-medium rounded transition-colors hover:bg-[#333333]"
+              className="btn-primary w-full py-3 font-medium transition-colors"
             >
               Get Started
             </button>
@@ -49,7 +49,7 @@ export default function Onboarding({ onComplete }) {
             <button
               onClick={handleStart}
               disabled={loading}
-              className="w-full py-3 bg-black text-white font-medium rounded transition-colors hover:bg-[#333333] disabled:opacity-50"
+              className="btn-primary w-full py-3 font-medium transition-colors disabled:opacity-50"
             >
               {loading ? 'Setting up...' : "Let's go"}
             </button>

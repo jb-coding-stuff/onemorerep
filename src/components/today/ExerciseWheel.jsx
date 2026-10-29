@@ -94,7 +94,11 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
       ref={scrollerRef}
       onScroll={scheduleUpdate}
       className="flex-1 min-h-0 overflow-y-auto px-4 snap-y snap-mandatory"
-      style={{ scrollbarWidth: 'none' }}
+      style={{
+        scrollbarWidth: 'none',
+        WebkitMaskImage: 'linear-gradient(transparent, #000 40px, #000 calc(100% - 40px), transparent)',
+        maskImage: 'linear-gradient(transparent, #000 40px, #000 calc(100% - 40px), transparent)'
+      }}
     >
       <div style={{ height: spacer }} />
       {items.map((item, i) => (

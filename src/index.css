@@ -15,6 +15,22 @@ select {
   user-select: text;
 }
 
+/* Liquid Glass (light only). Tokens and background follow the liquid-glass
+   design system; glass with backdrop blur is reserved for floating layers. */
+:root {
+  --lg-bg: #e6eef5;
+  --lg-ink: #1d1d1f;
+  --lg-accent: #007a80;
+  --lg-edge: 1px solid rgba(255, 255, 255, .55);
+  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .35),
+    inset 1px 0 0 rgba(255, 255, 255, .45), inset -1px 0 0 rgba(255, 255, 255, .2);
+  --lg-shadow: 0 1px 2px rgba(20, 45, 70, .05), 0 16px 40px rgba(20, 45, 70, .10);
+  --lg-blur: blur(16px) saturate(170%) brightness(1.04);
+  --lg-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --lg-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+
 html,
 body,
 #root {
@@ -22,16 +38,101 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--lg-font);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Commissioner', sans-serif;
+  font-family: var(--lg-font-display);
+  letter-spacing: -0.015em;
 }
 
+html {
+  background: var(--lg-bg);
+}
+
+/* Glass needs something behind it: calm blue fields. The body never
+   scrolls (<main> does), so the background stays put on iOS too. */
 body {
-  background: white;
-  color: #111111;
+  color: var(--lg-ink);
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
+  background:
+    radial-gradient(46% 42% at 10% 6%, #a9cdf0, transparent 70%),
+    radial-gradient(40% 38% at 90% 10%, #a3d8db, transparent 72%),
+    radial-gradient(44% 40% at 70% 56%, #bccaf2, transparent 70%),
+    radial-gradient(42% 40% at 4% 64%, #cfe6f5, transparent 70%),
+    radial-gradient(50% 44% at 98% 98%, #86bec1, transparent 72%),
+    radial-gradient(40% 36% at 30% 100%, #97b9e6, transparent 70%),
+    var(--lg-bg);
+}
+
+@layer components {
+  /* Cards sit on the soft gradient, where backdrop blur would look the same
+     but cost a lot while the wheel animates, so they use tint + rim only. */
+  .glass-card {
+    position: relative;
+    background: linear-gradient(160deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0) 60%), rgba(255, 255, 255, .55);
+    border: var(--lg-edge);
+    box-shadow: var(--lg-rim), var(--lg-shadow);
+    border-radius: 24px;
+  }
+  .glass-tile {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 60%), rgba(255, 255, 255, .38);
+    border: var(--lg-edge);
+    box-shadow: var(--lg-rim), 0 1px 2px rgba(20, 45, 70, .05), 0 8px 24px rgba(20, 45, 70, .08);
+    border-radius: 20px;
+  }
+  /* Floating layers (bars, sheets) overlap content, so they get real blur. */
+  .glass-float {
+    background: linear-gradient(160deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, .08)), rgba(255, 255, 255, .5);
+    border: var(--lg-edge);
+    box-shadow: var(--lg-rim), var(--lg-shadow);
+    -webkit-backdrop-filter: var(--lg-blur);
+    backdrop-filter: var(--lg-blur);
+  }
+  .glass-inset {
+    background: rgba(255, 255, 255, .5);
+    border: 1px solid rgba(255, 255, 255, .7);
+    border-radius: 16px;
+  }
+  .glass-segmented {
+    display: flex;
+    gap: 2px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .3);
+    border: var(--lg-edge);
+    box-shadow: var(--lg-rim);
+  }
+  .glass-segmented > button {
+    border-radius: 999px;
+  }
+  .glass-segmented > button[aria-pressed="true"] {
+    background: rgba(255, 255, 255, .92);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .1), inset 0 1px 0 #fff;
+  }
+  .btn-primary {
+    color: #fff;
+    background: var(--lg-accent);
+    border-radius: 999px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .15), inset 0 1px 0 rgba(255, 255, 255, .25);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-glass {
+    color: var(--lg-ink);
+    background: rgba(255, 255, 255, .7);
+    border: var(--lg-edge);
+    border-radius: 999px;
+    box-shadow: var(--lg-rim), 0 1px 3px rgba(0, 0, 0, .08);
+  }
+  .btn-glass:hover { background: rgba(255, 255, 255, .92); }
+}
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-float { background: rgba(255, 255, 255, .9); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-card, .glass-tile, .glass-float { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 /* Smooth transitions */
