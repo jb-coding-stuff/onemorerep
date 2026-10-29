@@ -11,7 +11,8 @@ export default function RestTimerBar() {
 
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 border-t border-divider bg-white z-40 px-4 pt-3"
+      data-rest-timer-bar
+      className="shrink-0 border-t border-divider bg-white px-4 pt-3"
       style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom))' }}
     >
       <div className="flex items-center gap-3">

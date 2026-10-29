@@ -5,10 +5,13 @@ import { getProgressionState, getProgressionStates, initializeProgressionState }
 import { getLastWorkoutForExercise } from '../../db/workoutLog'
 import { computeSessionWeight, updateProgressionAfterWorkout } from '../../utils/progressionEngine'
 import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
+import { syncLiveWorkout, deleteLoggedWorkout } from '../../db/liveWorkout'
 import ExerciseCard from './ExerciseCard'
 import PostWorkoutSummary from './PostWorkoutSummary'
 import ExerciseWheel from './ExerciseWheel'
 import { BackIcon, ListIcon, FocusIcon, IconButton } from '../icons'
+
+const AUTO_END_AFTER_MS = 12 * 60 * 60 * 1000
 
 const initialState = {
   mode: 'picking', // 'picking' | 'logging' | 'summary'
@@ -45,7 +48,8 @@ function workoutReducer(state, action) {
           actualReps: reps,
           rpe,
           weight,
-          completed: true
+          completed: true,
+          completedAt: Date.now()
         }
         // Update weight for remaining incomplete sets of this exercise
         for (let i = setIndex + 1; i < updated[exerciseIndex].sets.length; i++) {
@@ -110,6 +114,11 @@ function workoutReducer(state, action) {
         mode: 'summary'
       }
 
+    case 'SET_LOG_ID':
+      return state.startTime === action.payload.startTime
+        ? { ...state, logId: action.payload.logId }
+        : state
+
     case 'RESUME_LOGGING':
       return {
         ...state,
@@ -165,13 +174,36 @@ export default function TodayTab({ onBack }) {
     saveActiveWorkout(state)
   }, [state])
 
+  // Log completed sets to History + Supabase as they happen.
+  const loggedSignature = state.mode === 'picking' ? '' : state.exercises
+    .map(ex => ex.sets.filter(s => s.completed).map(s => `${s.actualReps}x${s.weight}@${s.rpe}`).join(','))
+    .join('|')
+  useEffect(() => {
+    if (!loggedSignature.replace(/\|/g, '')) return
+    const { startTime } = state
+    syncLiveWorkout(state)
+      .then(logId => {
+        if (logId != null && logId !== state.logId) dispatch({ type: 'SET_LOG_ID', payload: { startTime, logId } })
+      })
+      .catch(err => console.error('Failed to log workout progress:', err))
+  }, [loggedSignature]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load active workout on mount, or determine suggested next session
   useEffect(() => {
     if (sessions.length === 0) return
     if (state.mode !== 'picking') return
 
     async function loadOrStartWorkout() {
-      const activeWorkout = await loadActiveWorkout()
+      let activeWorkout = await loadActiveWorkout()
+      // Sets are logged as they happen, so a workout left open (no Finish)
+      // just ends once it's old enough; the next session gets suggested.
+      if (activeWorkout && Date.now() - activeWorkout.startTime > AUTO_END_AFTER_MS) {
+        if (activeWorkout.exercises?.some(ex => ex.setsCompleted > 0)) {
+          await db.settings.put({ key: 'lastSessionLabel', value: activeWorkout.selectedSession })
+        }
+        await clearActiveWorkout()
+        activeWorkout = null
+      }
       if (activeWorkout) {
         if (sessions.some(s => s.label === activeWorkout.selectedSession)) {
           dispatch({ type: 'RESTORE_WORKOUT', payload: activeWorkout })
@@ -259,8 +291,7 @@ export default function TodayTab({ onBack }) {
     setStaleWorkout(null)
   }
 
-  async function discardStaleWorkout() {
-    if (!confirm(`Discard the unfinished ${staleWorkout.selectedSession} workout? Its sets won't be saved.`)) return
+  async function closeStaleWorkout() {
     await clearActiveWorkout()
     setStaleWorkout(null)
   }
@@ -366,7 +397,7 @@ export default function TodayTab({ onBack }) {
               Unfinished <span className="font-semibold">{staleWorkout.selectedSession}</span> from
               your previous plan
               ({staleWorkout.exercises.filter(ex => ex.setsCompleted > 0).length}/{staleWorkout.exercises.length} exercises started).
-              Starting a new workout discards it.
+              Its logged sets are already in History.
             </p>
             <div className="flex gap-2">
               <button
@@ -376,10 +407,10 @@ export default function TodayTab({ onBack }) {
                 Resume
               </button>
               <button
-                onClick={discardStaleWorkout}
+                onClick={closeStaleWorkout}
                 className="flex-1 py-2 border border-divider rounded text-sm transition-colors hover:bg-divider"
               >
-                Discard
+                Close
               </button>
             </div>
           </div>
@@ -413,6 +444,7 @@ export default function TodayTab({ onBack }) {
         exercises={state.exercises}
         sessionLabel={state.selectedSession}
         startTime={state.startTime}
+        logId={state.logId}
         onDone={async () => {
           await clearActiveWorkout()
           dispatch({ type: 'RESET' })
@@ -506,7 +538,10 @@ export default function TodayTab({ onBack }) {
 
           <button
             onClick={async () => {
-              if (anySetDone && !confirm('Discard this workout? Logged sets won\'t be saved.')) return
+              if (anySetDone) {
+                if (!confirm('Delete this workout? Its logged sets will be removed from History.')) return
+                await deleteLoggedWorkout(state)
+              }
               // Save current session as "last completed" before skipping
               await db.settings.put({ key: 'lastSessionLabel', value: state.selectedSession })
               await clearActiveWorkout()
@@ -514,7 +549,7 @@ export default function TodayTab({ onBack }) {
             }}
             className="w-full py-3 bg-divider text-black font-semibold rounded transition-colors hover:bg-[#d0d0d0] mt-3"
           >
-            Skip Workout
+            {anySetDone ? 'Delete Workout' : 'Skip Workout'}
           </button>
         </div>
       </div>
