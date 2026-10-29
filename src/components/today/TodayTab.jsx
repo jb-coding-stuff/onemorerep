@@ -313,7 +313,7 @@ export default function TodayTab({ onBack }) {
 
   if (!program) {
     return (
-      <div className="pb-20 px-4 py-4 flex items-center justify-center min-h-screen">
+      <div className="pb-20 px-4 py-4 flex items-center justify-center min-h-full">
         <p className="text-secondary">No program loaded. Go to Me tab to add exercises.</p>
       </div>
     )
@@ -322,7 +322,7 @@ export default function TodayTab({ onBack }) {
 
   if (state.mode === 'picking' && suggestedSession) {
     return (
-      <div className="px-4 flex flex-col min-h-screen" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)', paddingBottom: '5rem' }}>
+      <div className="px-4 flex flex-col min-h-full" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-lg font-bold">Today's Workout</h2>
           {onBack && (
@@ -399,7 +399,7 @@ export default function TodayTab({ onBack }) {
   if (state.isOverviewMode) {
     // Overview mode: show all exercises
     return (
-      <div className="pb-20 px-4 py-4" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)' }}>
+      <div className="pb-20 px-4 py-4" style={{ paddingTop: '1.5rem' }}>
         <div className="flex items-center justify-between mb-6">
           <div className="flex-1">
             <h2 className="text-lg font-bold">{state.selectedSession}</h2>
@@ -496,7 +496,7 @@ export default function TodayTab({ onBack }) {
 
   // Default view: show only current set
   return (
-    <div className="pb-20 px-4 flex flex-col min-h-screen" style={{ paddingTop: 'calc(env(safe-area-inset-top) + 1.5rem)', paddingBottom: '5rem' }}>
+    <div className="pb-20 px-4 flex flex-col min-h-full" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
       <div className="flex items-center justify-between mb-8">
         <div className="flex-1">
           <h2 className="text-lg font-bold">{state.selectedSession}</h2>
