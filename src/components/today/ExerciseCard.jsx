@@ -14,7 +14,8 @@ export default function ExerciseCard({
   onSwap,
   onBonusRound,
   isAllDone,
-  isActive = true
+  isActive = true,
+  plain = false
 }) {
   const [expanded, setExpanded] = useState(true)
   const [showSwap, setShowSwap] = useState(false)
@@ -24,7 +25,7 @@ export default function ExerciseCard({
 
   return (
     <>
-      <div className="glass-card p-5">
+      <div className={plain ? 'py-5' : 'glass-card p-5'}>
         {/* Header */}
         <button
           onClick={() => setExpanded(!expanded)}
@@ -39,7 +40,7 @@ export default function ExerciseCard({
 
         {/* Sets */}
         {expanded && (
-          <div className="mt-4 space-y-2">
+          <div className="mt-2">
             {exercise.sets.map((set, setIdx) => (
               <SetRow
                 key={setIdx}

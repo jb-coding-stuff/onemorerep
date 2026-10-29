@@ -4,21 +4,21 @@ export default function HomeScreen({ onNavigate }) {
       <div className="space-y-4 w-full max-w-xs">
         <button
           onClick={() => onNavigate('today')}
-          className="glass-card w-full py-5 text-lg font-semibold transition-transform active:scale-[0.98]"
+          className="w-full py-5 text-2xl font-semibold text-left border-b border-white/[.06] last:border-b-0 active:opacity-60 transition-opacity"
         >
           Start Workout
         </button>
 
         <button
           onClick={() => onNavigate('history')}
-          className="glass-card w-full py-5 text-lg font-semibold transition-transform active:scale-[0.98]"
+          className="w-full py-5 text-2xl font-semibold text-left border-b border-white/[.06] last:border-b-0 active:opacity-60 transition-opacity"
         >
           History
         </button>
 
         <button
           onClick={() => onNavigate('me')}
-          className="glass-card w-full py-5 text-lg font-semibold transition-transform active:scale-[0.98]"
+          className="w-full py-5 text-2xl font-semibold text-left border-b border-white/[.06] last:border-b-0 active:opacity-60 transition-opacity"
         >
           Me
         </button>

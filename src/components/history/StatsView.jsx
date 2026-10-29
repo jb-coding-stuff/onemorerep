@@ -39,7 +39,7 @@ function makeIdentify(catalog, program) {
 
 function Section({ title, children }) {
   return (
-    <section className="glass-card p-5 mt-4">
+    <section className="py-6 border-t border-white/[.06]">
       <h2 className="text-sm font-semibold mb-4">{title}</h2>
       {children}
     </section>
@@ -101,13 +101,13 @@ export default function StatsView({ workouts }) {
         <p className="text-secondary text-sm py-8">No completed sets in this period.</p>
       ) : (
         <>
-          <div className="grid grid-cols-3 gap-2 pt-4">
+          <div className="grid grid-cols-3 gap-2 py-6">
             {[
               ['Workouts', workoutCount],
               ['Sets', rows.length],
               ['Volume', `${Math.round(rows.reduce((s, r) => s + r.weight * r.reps, 0) / 1000)}t`]
             ].map(([label, value]) => (
-              <div key={label} className="glass-tile p-3">
+              <div key={label}>
                 <div className="text-xs text-secondary">{label}</div>
                 <div className="text-xl font-bold tabular-nums">{value}</div>
               </div>
