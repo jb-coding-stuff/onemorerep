@@ -66,7 +66,7 @@ export default function ExerciseCard({
         {expanded && exercise.alternatives?.length > 0 && (
           <button
             onClick={() => setShowSwap(true)}
-            className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/50 rounded-full transition-colors"
+            className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
           >
             ⇄ Swap
           </button>

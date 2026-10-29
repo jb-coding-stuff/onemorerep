@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { fileURLToPath } from 'node:url'
 
 export default defineConfig({
   plugins: [
@@ -12,8 +13,8 @@ export default defineConfig({
         name: 'Fitness Tracker',
         short_name: 'Fitness',
         description: 'Offline-first fitness tracking PWA',
-        theme_color: '#e6eef5',
-        background_color: '#e6eef5',
+        theme_color: '#0b0b0c',
+        background_color: '#0b0b0c',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
@@ -32,25 +33,20 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
-        // Ranade comes from Fontshare; cache it so the app keeps its font offline.
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/(api|cdn)\.fontshare\.com\/.*/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'fontshare',
-              expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
-              cacheableResponse: { statuses: [0, 200] }
-            }
-          }
-        ]
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
+        runtimeCaching: []
       },
       devOptions: {
         enabled: true
       }
     })
   ],
+  resolve: {
+    alias: {
+      // geist's package exports only cover next/font; point at its font files.
+      '@geist-fonts': fileURLToPath(new URL('./node_modules/geist/dist/fonts', import.meta.url))
+    }
+  },
   server: {
     port: 5173,
     open: false

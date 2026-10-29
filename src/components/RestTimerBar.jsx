@@ -18,7 +18,7 @@ export default function RestTimerBar() {
       <div className="glass-float rounded-3xl px-4 py-3 flex items-center gap-3">
         <div className="flex-1 min-w-0">
           <div className="text-xs text-secondary truncate">Rest · {exerciseName}</div>
-          <div className="h-1 mt-2 bg-white/60 rounded-full overflow-hidden">
+          <div className="h-1 mt-2 bg-white/[.1] rounded-full overflow-hidden">
             <div className="h-full bg-accent transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
         </div>

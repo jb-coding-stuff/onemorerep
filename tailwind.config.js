@@ -7,13 +7,13 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Ranade', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI"', 'system-ui', 'sans-serif'],
-        heading: ['Ranade', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"Segoe UI"', 'system-ui', 'sans-serif']
+        sans: ['Geist', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"Segoe UI"', 'system-ui', 'sans-serif'],
+        heading: ['Geist', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"Segoe UI"', 'system-ui', 'sans-serif']
       },
       colors: {
-        divider: '#dde3ea',
-        secondary: '#6e6e73',
-        accent: '#007a80'
+        divider: '#2a2a2e',
+        secondary: '#9a9a9f',
+        accent: 'rgb(var(--accent-rgb) / <alpha-value>)'
       }
     }
   },

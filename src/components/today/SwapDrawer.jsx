@@ -86,7 +86,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                     movementType: exercise.movementType
                   })
                 }}
-                className="glass-inset w-full p-3 text-left hover:bg-white/70 transition-colors"
+                className="glass-inset w-full p-3 text-left hover:bg-white/[.08] transition-colors"
               >
                 <div className="font-medium">{alt.name}</div>
                 <div className="text-sm text-secondary">
@@ -114,7 +114,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                 value={customName}
                 onChange={e => setCustomName(e.target.value)}
                 placeholder="e.g., Dumbbell Bench Press"
-                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
+                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
               />
             </div>
 
@@ -123,7 +123,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
               <select
                 value={customMovementType}
                 onChange={e => setCustomMovementType(e.target.value)}
-                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
+                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
               >
                 <option value="compound_upper">Compound Upper</option>
                 <option value="compound_lower">Compound Lower</option>
@@ -138,7 +138,7 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
                 value={customWeight}
                 onChange={e => setCustomWeight(parseFloat(e.target.value) || 0)}
                 step="0.5"
-                className="w-full px-3 py-2 bg-white/80 border border-white rounded-xl text-sm"
+                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
               />
             </div>
 

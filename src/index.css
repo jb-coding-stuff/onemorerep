@@ -15,20 +15,52 @@ select {
   user-select: text;
 }
 
+@font-face {
+  font-family: 'Geist';
+  src: url('@geist-fonts/geist-sans/Geist-Variable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* Liquid Glass (light only). Tokens and background follow the liquid-glass
    design system; glass with backdrop blur is reserved for floating layers. */
+/* Dark liquid glass: near-black base with faint light so the glass has
+   something to sit on, white/light-gray type, one vivid accent. */
 :root {
-  --lg-bg: #e6eef5;
-  --lg-ink: #1d1d1f;
-  --lg-accent: #007a80;
-  --lg-edge: 1px solid rgba(255, 255, 255, .55);
-  --lg-rim: inset 0 1px 0 rgba(255, 255, 255, .9), inset 0 -1px 0 rgba(255, 255, 255, .35),
-    inset 1px 0 0 rgba(255, 255, 255, .45), inset -1px 0 0 rgba(255, 255, 255, .2);
-  --lg-shadow: 0 1px 2px rgba(20, 45, 70, .05), 0 16px 40px rgba(20, 45, 70, .10);
-  --lg-blur: blur(16px) saturate(170%) brightness(1.04);
-  --lg-font: "Ranade", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --lg-font-display: "Ranade", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
-  color-scheme: light;
+  --font: "Geist", -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --ink: #f5f5f7;
+  --ink-2: #9a9a9f;
+  --accent: #c8ff2e;
+  --accent-rgb: 200 255 46;
+  --on-accent: #0b0b0c;
+  --app-bg:
+    radial-gradient(70% 45% at 0% 0%, rgba(255, 255, 255, .07), transparent 70%),
+    radial-gradient(60% 40% at 100% 100%, rgba(200, 255, 46, .045), transparent 70%),
+    radial-gradient(50% 35% at 100% 30%, rgba(255, 255, 255, .035), transparent 70%),
+    #0b0b0c;
+  --app-bg-base: #0b0b0c;
+  --rim: inset 0 1px 0 rgba(255, 255, 255, .12), inset 0 -1px 0 rgba(255, 255, 255, .03);
+  --card-bg: linear-gradient(160deg, rgba(255, 255, 255, .07), rgba(255, 255, 255, .02) 60%), rgba(255, 255, 255, .03);
+  --card-border: 1px solid rgba(255, 255, 255, .09);
+  --card-shadow: var(--rim), 0 16px 40px rgba(0, 0, 0, .45);
+  --card-radius: 22px;
+  --tile-bg: rgba(255, 255, 255, .045);
+  --tile-shadow: var(--rim);
+  --tile-radius: 18px;
+  --inset-bg: rgba(255, 255, 255, .04);
+  --inset-border: 1px solid rgba(255, 255, 255, .07);
+  --inset-radius: 14px;
+  --float-bg: linear-gradient(160deg, rgba(255, 255, 255, .08), rgba(255, 255, 255, .02)), rgba(22, 22, 24, .62);
+  --float-blur: blur(22px) saturate(160%);
+  --control-bg: rgba(255, 255, 255, .07);
+  --control-bg-hover: rgba(255, 255, 255, .13);
+  --control-border: 1px solid rgba(255, 255, 255, .1);
+  --control-shadow: var(--rim);
+  --control-radius: 999px;
+  --segment-bg: rgba(255, 255, 255, .05);
+  --segment-active: rgba(255, 255, 255, .14);
+  color-scheme: dark;
 }
 
 html,
@@ -38,101 +70,90 @@ body,
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: var(--lg-font);
+  font-family: var(--font);
 }
 
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--lg-font-display);
+  font-family: var(--font);
   letter-spacing: -0.015em;
 }
 
 html {
-  background: var(--lg-bg);
+  background: var(--app-bg-base);
 }
 
-/* Glass needs something behind it: calm blue fields. The body never
-   scrolls (<main> does), so the background stays put on iOS too. */
+/* The body never scrolls (<main> does), so the background stays put on iOS. */
 body {
-  color: var(--lg-ink);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
-  background:
-    radial-gradient(46% 42% at 10% 6%, #a9cdf0, transparent 70%),
-    radial-gradient(40% 38% at 90% 10%, #a3d8db, transparent 72%),
-    radial-gradient(44% 40% at 70% 56%, #bccaf2, transparent 70%),
-    radial-gradient(42% 40% at 4% 64%, #cfe6f5, transparent 70%),
-    radial-gradient(50% 44% at 98% 98%, #86bec1, transparent 72%),
-    radial-gradient(40% 36% at 30% 100%, #97b9e6, transparent 70%),
-    var(--lg-bg);
+  background: var(--app-bg);
 }
 
 @layer components {
-  /* Cards sit on the soft gradient, where backdrop blur would look the same
-     but cost a lot while the wheel animates, so they use tint + rim only. */
+  /* Cards don't use backdrop blur: over the background it looks the same
+     but would cost frames while the wheel animates. */
   .glass-card {
     position: relative;
-    background: linear-gradient(160deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, 0) 60%), rgba(255, 255, 255, .55);
-    border: var(--lg-edge);
-    box-shadow: var(--lg-rim), var(--lg-shadow);
-    border-radius: 24px;
+    background: var(--card-bg);
+    border: var(--card-border);
+    box-shadow: var(--card-shadow);
+    border-radius: var(--card-radius);
   }
   .glass-tile {
-    background: linear-gradient(160deg, rgba(255, 255, 255, .3), rgba(255, 255, 255, 0) 60%), rgba(255, 255, 255, .38);
-    border: var(--lg-edge);
-    box-shadow: var(--lg-rim), 0 1px 2px rgba(20, 45, 70, .05), 0 8px 24px rgba(20, 45, 70, .08);
-    border-radius: 20px;
+    background: var(--tile-bg);
+    border: var(--card-border);
+    box-shadow: var(--tile-shadow);
+    border-radius: var(--tile-radius);
   }
   /* Floating layers (bars, sheets) overlap content, so they get real blur. */
   .glass-float {
-    background: linear-gradient(160deg, rgba(255, 255, 255, .35), rgba(255, 255, 255, .08)), rgba(255, 255, 255, .5);
-    border: var(--lg-edge);
-    box-shadow: var(--lg-rim), var(--lg-shadow);
-    -webkit-backdrop-filter: var(--lg-blur);
-    backdrop-filter: var(--lg-blur);
+    background: var(--float-bg);
+    border: var(--card-border);
+    box-shadow: var(--card-shadow);
+    -webkit-backdrop-filter: var(--float-blur);
+    backdrop-filter: var(--float-blur);
   }
   .glass-inset {
-    background: rgba(255, 255, 255, .5);
-    border: 1px solid rgba(255, 255, 255, .7);
-    border-radius: 16px;
+    background: var(--inset-bg);
+    border: var(--inset-border);
+    border-radius: var(--inset-radius);
   }
   .glass-segmented {
     display: flex;
     gap: 2px;
     padding: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, .3);
-    border: var(--lg-edge);
-    box-shadow: var(--lg-rim);
+    border-radius: var(--control-radius);
+    background: var(--segment-bg);
   }
   .glass-segmented > button {
-    border-radius: 999px;
+    border-radius: var(--control-radius);
   }
   .glass-segmented > button[aria-pressed="true"] {
-    background: rgba(255, 255, 255, .92);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .1), inset 0 1px 0 #fff;
+    background: var(--segment-active);
+    box-shadow: var(--rim);
   }
   .btn-primary {
-    color: #fff;
-    background: var(--lg-accent);
-    border-radius: 999px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .15), inset 0 1px 0 rgba(255, 255, 255, .25);
+    color: var(--on-accent);
+    background: var(--accent);
+    border-radius: var(--control-radius);
   }
   .btn-primary:hover { filter: brightness(1.08); }
   .btn-glass {
-    color: var(--lg-ink);
-    background: rgba(255, 255, 255, .7);
-    border: var(--lg-edge);
-    border-radius: 999px;
-    box-shadow: var(--lg-rim), 0 1px 3px rgba(0, 0, 0, .08);
+    color: var(--ink);
+    background: var(--control-bg);
+    border: var(--control-border);
+    border-radius: var(--control-radius);
+    box-shadow: var(--control-shadow);
   }
-  .btn-glass:hover { background: rgba(255, 255, 255, .92); }
+  .btn-glass:hover { background: var(--control-bg-hover); }
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
-  .glass-float { background: rgba(255, 255, 255, .9); }
+  .glass-float { background: rgba(22, 22, 24, .97); }
 }
 @media (prefers-reduced-transparency: reduce) {
-  .glass-card, .glass-tile, .glass-float { background: #fff; -webkit-backdrop-filter: none; backdrop-filter: none; }
+  .glass-card, .glass-tile, .glass-float { background: #161618; -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 /* Smooth transitions */

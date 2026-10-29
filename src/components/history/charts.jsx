@@ -1,21 +1,21 @@
 import { useState, useRef } from 'react'
 
 // Fixed colour per region (identity follows the entity, never its rank).
-// Validated as a set: dataviz reference palette slots 1-6 on a light surface.
+// Validated as a set: dataviz reference palette slots 1-6, dark-surface steps.
 export const REGION_COLORS = {
-  chest: '#2a78d6',
-  back: '#eb6834',
-  shoulders: '#1baf7a',
-  arms: '#eda100',
-  legs: '#e87ba4',
+  chest: '#3987e5',
+  back: '#d95926',
+  shoulders: '#199e70',
+  arms: '#c98500',
+  legs: '#d55181',
   core: '#008300',
-  other: '#a3a29c'
+  other: '#5c5c61'
 }
 
-const INK = '#1d1d1f'
-const ACCENT = '#007a80'
-const MUTED = '#8a8984'
-const GRID = 'rgba(0,0,0,0.07)'
+const INK = '#f5f5f7'
+const ACCENT = 'var(--accent)'
+const MUTED = '#8e8e93'
+const GRID = 'rgba(255,255,255,0.08)'
 
 /** Donut with a 2px surface gap between segments and the total in the hole. */
 export function Donut({ data, size = 168, thickness = 26, centerLabel }) {
@@ -56,7 +56,7 @@ export function BarList({ data, valueSuffix = '' }) {
             <span className="truncate pr-2">{d.label}</span>
             <span className="tabular-nums text-secondary">{d.value}{valueSuffix}</span>
           </div>
-          <div className="h-2 rounded-full bg-white/60 overflow-hidden">
+          <div className="h-2 rounded-full bg-white/[.1] overflow-hidden">
             <div className="h-full rounded-full bg-accent" style={{ width: `${(d.value / max) * 100}%` }} />
           </div>
         </div>
@@ -128,10 +128,10 @@ export function LineChart({ points, format, zeroBased = false, height = 180 }) {
         <text x={W - pad.r} y={height - 6} textAnchor="end" fontSize="10" fill={MUTED}>{fmtDate(t1)}</text>
         <path d={path} fill="none" stroke={ACCENT} strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" />
         {points.length <= 24 && points.map((p, i) => (
-          <circle key={i} cx={x(p.t)} cy={y(p.y)} r="3" fill={ACCENT} stroke="#fff" strokeWidth="2" />
+          <circle key={i} cx={x(p.t)} cy={y(p.y)} r="3" fill={ACCENT} stroke="#121214" strokeWidth="2" />
         ))}
         <line x1={x(h.t)} x2={x(h.t)} y1={pad.t} y2={height - pad.b} stroke={MUTED} strokeWidth="1" strokeDasharray="3 3" />
-        <circle cx={x(h.t)} cy={y(h.y)} r="5" fill={ACCENT} stroke="#fff" strokeWidth="2" />
+        <circle cx={x(h.t)} cy={y(h.y)} r="5" fill={ACCENT} stroke="#121214" strokeWidth="2" />
       </svg>
     </div>
   )

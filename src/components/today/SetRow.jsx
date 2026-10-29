@@ -30,8 +30,8 @@ function Stepper({ label, value, touched, onChange, onStep, inputMode }) {
           value={value}
           onChange={e => onChange(e.target.value)}
           onFocus={e => e.target.select()}
-          className={`min-w-0 flex-1 h-12 px-1 bg-white/80 border border-white rounded-xl text-xl font-semibold text-center ${
-            touched ? 'text-[#1d1d1f]' : 'text-secondary'
+          className={`min-w-0 flex-1 h-12 px-1 bg-white/[.06] border border-white/10 rounded-xl text-xl font-semibold text-center ${
+            touched ? 'text-[color:var(--ink)]' : 'text-secondary'
           }`}
         />
         <button type="button" onClick={() => onStep(-1)} className={stepButton} aria-label={`${label} minus`}>
@@ -91,8 +91,8 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
         }}
         className={`w-full p-3 rounded-2xl border transition-all ${
           set.completed
-            ? 'border-white/70 bg-white/70'
-            : 'border-white/60 bg-white/35 hover:bg-white/55'
+            ? 'border-white/10 bg-white/[.08]'
+            : 'border-white/[.06] bg-white/[.03] hover:bg-white/[.08]'
         }`}
       >
         <div className="flex items-center justify-between gap-3">
@@ -100,7 +100,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           <div className="flex items-center gap-3">
             {set.completed ? (
               <>
-                <span className="text-sm text-[#1d1d1f]">{set.actualReps}×{set.weight} kg</span>
+                <span className="text-sm text-[color:var(--ink)]">{set.actualReps}×{set.weight} kg</span>
                 <span className="text-lg text-accent">✓</span>
               </>
             ) : (
@@ -150,10 +150,10 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           onClick={restTimer.skipTimer}
           className="w-full py-4 font-semibold rounded-xl transition-all"
           style={{
-            background: `linear-gradient(to right, rgba(255,255,255,.6) 0%, rgba(255,255,255,.6) ${progress * 100}%, #007a80 ${progress * 100}%, #007a80 100%)`
+            background: `linear-gradient(to right, rgba(255,255,255,.06) 0%, rgba(255,255,255,.06) ${progress * 100}%, var(--accent) ${progress * 100}%, var(--accent) 100%)`
           }}
         >
-          <span style={{ color: progress > 0.5 ? '#1d1d1f' : 'white', fontWeight: 'bold' }}>
+          <span style={{ color: progress > 0.5 ? 'var(--ink)' : 'var(--on-accent)', fontWeight: 'bold' }}>
             {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </span>
         </button>
@@ -197,7 +197,7 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
           onChange={e => setRpe(parseFloat(e.target.value))}
           className="w-full h-2 rounded appearance-none cursor-pointer"
           style={{
-            background: `linear-gradient(to right, #007a80 0%, #007a80 ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.7) ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.7) 100%)`,
+            background: `linear-gradient(to right, var(--accent) 0%, var(--accent) ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.12) ${((rpe - 6) / 4) * 100}%, rgba(255,255,255,.12) 100%)`,
             WebkitAppearance: 'none',
           }}
         />
