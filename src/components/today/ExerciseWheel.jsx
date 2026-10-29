@@ -12,6 +12,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   const itemRefs = useRef([])
   const frameRef = useRef(0)
   const [activeIndex, setActiveIndex] = useState(focusIndex)
+  const activeRef = useRef(focusIndex)
   const [spacer, setSpacer] = useState(0)
 
   const updateStyles = useCallback(() => {
@@ -30,13 +31,19 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
         bestOffset = Math.abs(offset)
         best = i
       }
-      const d = Math.max(-1.5, Math.min(1.5, offset / (box.height * 0.5)))
+      // d: signed distance from the centre in units of ~60% of the viewport.
+      // Quadratic falloff keeps cards near the centre almost sharp and
+      // sharpens continuously as they approach it.
+      const d = Math.max(-1.2, Math.min(1.2, offset / (box.height * 0.6)))
       const a = Math.abs(d)
-      el.style.transform = `perspective(1000px) rotateX(${-d * 28}deg) scale(${1 - Math.min(a, 1) * 0.12})`
-      el.style.filter = a < 0.04 ? 'none' : `blur(${Math.min(a, 1) * 5}px)`
-      el.style.opacity = String(1 - Math.min(a, 1) * 0.55)
+      el.style.transform = `perspective(1000px) rotateX(${(-d * 22).toFixed(2)}deg) scale(${(1 - a * 0.1).toFixed(4)})`
+      el.style.filter = `blur(${(9 * a * a).toFixed(2)}px)`
+      el.style.opacity = (1 - 0.6 * Math.min(1, a ** 1.5)).toFixed(3)
     })
-    setActiveIndex(best)
+    if (best !== activeRef.current) {
+      activeRef.current = best
+      setActiveIndex(best)
+    }
   }, [])
 
   const scheduleUpdate = useCallback(() => {
@@ -94,8 +101,8 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
         <div
           key={item.exerciseId + ':' + i}
           ref={el => { itemRefs.current[i] = el }}
-          className="snap-center py-2 will-change-transform"
-          style={{ transformOrigin: 'center center' }}
+          className="snap-center py-8"
+          style={{ transformOrigin: 'center center', willChange: 'transform, filter, opacity' }}
           onClickCapture={e => {
             if (i === activeIndex) return
             e.preventDefault()
