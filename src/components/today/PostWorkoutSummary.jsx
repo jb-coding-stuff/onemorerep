@@ -113,7 +113,7 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
         <button
           onClick={handleSave}
           disabled={saving}
-          className="btn-primary w-full py-4 font-semibold transition-colors disabled:opacity-50"
+          className="btn-accent w-full py-4 font-semibold transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Workout'}
         </button>
