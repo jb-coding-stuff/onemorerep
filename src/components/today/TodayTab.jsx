@@ -453,6 +453,7 @@ export default function TodayTab({ onBack }) {
         exerciseIndex={idx}
         isActive={isActive}
         plain={plain}
+        workoutDate={state.startTime ? new Date(state.startTime).toISOString() : null}
         progressionRules={progressionRules}
         onSetComplete={handleSetComplete}
         onSuggestWeight={(setIdx, newWeight) =>

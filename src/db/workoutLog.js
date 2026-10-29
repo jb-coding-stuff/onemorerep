@@ -73,3 +73,25 @@ export async function getWorkoutsForExercise(exerciseId) {
     w.exercises?.some(ex => ex.exerciseId === exerciseId)
   )
 }
+
+/**
+ * Past sessions of an exercise, newest first, with their completed sets.
+ * Matches by exercise id or name (plans may name the same movement
+ * differently). `excludeDate` skips the in-progress workout, which is
+ * already in the log because sets are saved as they're done.
+ * @returns {Promise<{ date: string, sets: { weight, reps, rpe }[] }[]>}
+ */
+export async function getRecentSessionsForExercise(exerciseId, name, { excludeDate = null, limit = 5 } = {}) {
+  const workouts = await db.workoutLog.orderBy('date').reverse().toArray()
+  const out = []
+  for (const w of workouts) {
+    if (excludeDate && w.date === excludeDate) continue
+    const ex = w.exercises?.find(e => e.exerciseId === exerciseId || (name && e.name === name))
+    const sets = (ex?.sets || [])
+      .filter(s => s.completed && (s.actualReps ?? 0) > 0)
+      .map(s => ({ weight: Number(s.weight) || 0, reps: s.actualReps, rpe: s.rpe ?? null }))
+    if (sets.length) out.push({ date: w.date, sets })
+    if (out.length >= limit) break
+  }
+  return out
+}

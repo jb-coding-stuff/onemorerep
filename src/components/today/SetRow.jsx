@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
-import { useRestTimer } from '../../contexts/RestTimerContext'
 
 const WEIGHT_STEP = 2.5
 const REPS_STEP = 1
@@ -44,53 +43,40 @@ function Stepper({ label, unit, value, touched, onChange, onStep, inputMode }) {
   )
 }
 
-export default function SetRow({ set, setIndex, exerciseIndex, exercise, onComplete, isActiveCard = true }) {
-  const [logging, setLogging] = useState(false)
+/**
+ * One set: a summary row, or (when open) the input panel. The card decides
+ * which set is open and whether a rest is running; during a rest the Done
+ * button turns into the countdown so the inputs stay visible.
+ */
+export default function SetRow({ set, exercise, isOpen, rest, onOpen, onCancel, onDone }) {
   const [reps, setReps] = useState(String(set.targetReps))
   const [weight, setWeight] = useState(formatNumber(set.weight || 0))
   const [repsTouched, setRepsTouched] = useState(false)
   const [weightTouched, setWeightTouched] = useState(false)
   const [rpe, setRpe] = useState(8.5)
-  const { displayWeight, compoundRest, isolationRest } = useSettings()
-  const restTimer = useRestTimer()
-  const timerKey = `${exercise.exerciseId}:${set.setNumber}`
-  const resting = restTimer.active && restTimer.timerKey === timerKey
-  const { setInlineKey } = restTimer
+  const { displayWeight } = useSettings()
 
-  // Tell the app-wide timer bar this set is showing the countdown in focus.
+  // Prefill from the plan (or the weight carried from the previous set)
+  // each time this set opens.
   useEffect(() => {
-    if (!resting || !isActiveCard) return
-    setInlineKey(timerKey)
-    return () => setInlineKey(k => (k === timerKey ? null : k))
-  }, [resting, isActiveCard, timerKey, setInlineKey])
-
-  // Prevent scrolling when logging set
-  useEffect(() => {
-    if (logging) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = 'auto'
-    }
-    return () => {
-      document.body.style.overflow = 'auto'
-    }
-  }, [logging])
-
-  function resetInputs() {
+    if (!isOpen) return
     setReps(String(set.targetReps))
     setWeight(formatNumber(set.weight || 0))
     setRepsTouched(false)
     setWeightTouched(false)
-    setRpe(8.5)
-  }
+    setRpe(set.rpe ?? 8.5)
+  }, [isOpen]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!logging && !resting) {
+  // A weight carried over from the previous set (or a suggested increase)
+  // updates the prefill as long as the user hasn't typed their own.
+  useEffect(() => {
+    if (isOpen && !weightTouched) setWeight(formatNumber(set.weight || 0))
+  }, [set.weight]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (!isOpen) {
     return (
       <button
-        onClick={() => {
-          resetInputs()
-          setLogging(true)
-        }}
+        onClick={onOpen}
         className="w-full py-3 border-b border-white/[.06] last:border-b-0 transition-colors"
       >
         <div className="flex items-center justify-between gap-3">
@@ -127,41 +113,10 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
     const parsedReps = parseInt(reps, 10)
     const finalReps = Number.isFinite(parsedReps) ? parsedReps : set.targetReps
     const finalWeight = parseNumber(weight) ?? set.weight ?? 0
-
-    // Mark set complete immediately
-    onComplete(finalReps, rpe, finalWeight)
-    setLogging(false)
-
-    const duration = exercise.movementType === 'isolation' ? isolationRest : compoundRest
-    restTimer.startTimer(duration, timerKey, exercise.name)
+    onDone(finalReps, rpe, finalWeight)
   }
 
-  if (resting) {
-    const { secondsRemaining, totalSeconds } = restTimer
-    const progress = (totalSeconds - secondsRemaining) / totalSeconds
-    const minutes = Math.floor(secondsRemaining / 60)
-    const seconds = secondsRemaining % 60
-
-    return (
-      <div className="pt-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-secondary flex-1">Rest</span>
-          <span className="text-lg font-semibold tabular-nums">
-            {minutes}:{String(seconds).padStart(2, '0')}
-          </span>
-          <button
-            onClick={restTimer.skipTimer}
-            className="text-sm text-secondary px-2 py-1 -mr-2 rounded-full hover:text-[color:var(--ink)] transition-colors"
-          >
-            Skip
-          </button>
-        </div>
-        <div className="mt-3 h-px bg-white/[.06] overflow-hidden">
-          <div className="h-full bg-white/70 transition-[width] duration-300 ease-linear" style={{ width: `${progress * 100}%` }} />
-        </div>
-      </div>
-    )
-  }
+  const restProgress = rest ? (rest.totalSeconds - rest.secondsRemaining) / rest.totalSeconds : 0
 
   return (
     <div className="-mx-3 my-1 px-3 py-3 space-y-3 rounded-2xl bg-white/[.045]">
@@ -186,7 +141,6 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
         onStep={stepReps}
       />
 
-      {/* RPE slider */}
       <div>
         <div className="text-xs text-secondary mb-2">RPE {rpe.toFixed(1)}</div>
         <input
@@ -225,20 +179,33 @@ export default function SetRow({ set, setIndex, exerciseIndex, exercise, onCompl
         `}</style>
       </div>
 
-      {/* Buttons */}
       <div className="flex gap-2 pt-2">
+        {rest ? (
+          <button
+            onClick={rest.skip}
+            aria-label="Skip rest"
+            className="btn-glass relative flex-1 py-2 overflow-hidden font-medium tabular-nums"
+          >
+            <span
+              className="absolute inset-y-0 left-0 bg-white/[.08] transition-[width] duration-300 ease-linear"
+              style={{ width: `${restProgress * 100}%` }}
+              aria-hidden="true"
+            />
+            <span className="relative">
+              Rest {Math.floor(rest.secondsRemaining / 60)}:{String(rest.secondsRemaining % 60).padStart(2, '0')}
+            </span>
+          </button>
+        ) : (
+          <button
+            onClick={handleSubmit}
+            className="btn-accent flex-1 py-2 font-medium transition-colors"
+          >
+            Done
+          </button>
+        )}
         <button
-          onClick={handleSubmit}
-          className="btn-accent flex-1 py-2 font-medium transition-colors"
-        >
-          Done
-        </button>
-        <button
-          onClick={() => {
-            setLogging(false)
-            resetInputs()
-          }}
-          aria-label="Cancel"
+          onClick={onCancel}
+          aria-label="Close"
           className="w-11 shrink-0 flex items-center justify-center rounded-full text-secondary hover:bg-white/[.06] transition-colors"
         >
           ✕

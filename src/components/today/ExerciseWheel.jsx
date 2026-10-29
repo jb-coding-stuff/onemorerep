@@ -42,11 +42,15 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     let bestOffset = Infinity
     itemRefs.current.forEach((el, i) => {
       if (!el) return
-      const offset = el.offsetTop + el.offsetHeight / 2 - center
-      if (Math.abs(offset) < bestOffset) {
-        bestOffset = Math.abs(offset)
+      const raw = el.offsetTop + el.offsetHeight / 2 - center
+      if (Math.abs(raw) < bestOffset) {
+        bestOffset = Math.abs(raw)
         best = i
       }
+      // Tall cards (an open set) stay sharp while the viewport centre is
+      // well inside them; distance counts from their inner band.
+      const band = Math.max(0, el.offsetHeight / 2 - 80)
+      const offset = Math.sign(raw) * Math.max(0, Math.abs(raw) - band)
       // d: signed distance from the centre in units of ~60% of the viewport.
       // Quadratic falloff keeps cards near the centre almost sharp and
       // sharpens continuously as they approach it.
@@ -110,6 +114,26 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     }
     animRef.current = requestAnimationFrame(step)
   }, [snapTop, scheduleUpdate])
+
+  // Re-centre the focused card when its height changes (a set opens, the
+  // last-session line appears), unless the user is dragging.
+  const heightsRef = useRef(new Map())
+  useEffect(() => {
+    const observer = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        const el = entry.target
+        const prev = heightsRef.current.get(el)
+        const h = el.offsetHeight
+        heightsRef.current.set(el, h)
+        if (prev == null || prev === h) continue
+        const i = itemRefs.current.indexOf(el)
+        if (i === activeRef.current && !dragRef.current && !animRef.current) scrollTo(i)
+        else scheduleUpdate()
+      }
+    })
+    itemRefs.current.forEach(el => el && observer.observe(el))
+    return () => observer.disconnect()
+  }, [items.length, scrollTo, scheduleUpdate])
 
   useLayoutEffect(() => {
     const scroller = scrollerRef.current
