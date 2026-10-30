@@ -62,12 +62,12 @@ export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/20 z-40"
+        className="sheet-backdrop fixed inset-0 z-40"
         onClick={onClose}
       />
 
       {/* Drawer */}
-      <div className="glass-float fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[80vh] overflow-y-auto">
+      <div className="glass-float glass-sheet fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[80vh] overflow-y-auto">
         <h3 className="font-semibold mb-4">Swap Exercise</h3>
 
         {/* Built-in alternatives */}

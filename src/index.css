@@ -166,6 +166,17 @@ body {
   }
   .btn-glass:hover { background: var(--control-bg-hover); }
 
+  /* Modal sheets: dim and soften everything behind them, and keep the sheet
+     itself mostly opaque so the content underneath doesn't compete. */
+  .sheet-backdrop {
+    background: rgba(0, 0, 0, .55);
+    -webkit-backdrop-filter: blur(10px) saturate(120%);
+    backdrop-filter: blur(10px) saturate(120%);
+  }
+  .glass-sheet {
+    background: var(--sheen), rgba(18, 18, 22, .9);
+  }
+
   /* One-off messages (warnings, errors) stand out from the flat lists. */
   .notice {
     padding: 14px 16px;
