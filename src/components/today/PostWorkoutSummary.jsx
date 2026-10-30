@@ -65,8 +65,8 @@ export default function PostWorkoutSummary({ exercises, sessionLabel, startTime,
   }
 
   return (
-    <div className="fixed inset-0 bg-black/20 z-50 flex items-end">
-      <div className="glass-float w-full rounded-t-3xl p-6 pb-10 max-h-[80vh] overflow-y-auto animate-slide-up">
+    <div className="sheet-backdrop fixed inset-0 z-50 flex items-end">
+      <div className="glass-float glass-sheet w-full rounded-t-3xl p-6 pb-10 max-h-[80vh] overflow-y-auto animate-slide-up">
         <h2 className="text-2xl font-bold mb-6">Workout Complete!</h2>
 
         {/* Duration */}
