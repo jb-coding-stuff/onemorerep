@@ -8,6 +8,7 @@ import {
 } from '../../program/localProvider'
 import { BackIcon, IconButton } from '../icons'
 import ExerciseLibrary from './ExerciseLibrary'
+import InviteFriends from './InviteFriends'
 import { useSettings } from '../../contexts/SettingsContext'
 import { supabase } from '../../db/supabase'
 import { currentUser, displayName, wipeLocalData } from '../../db/auth'
@@ -327,6 +328,8 @@ export default function MeTab({ onBack }) {
           <span className="text-secondary" aria-hidden="true">›</span>
         </button>
       </div>
+
+      <InviteFriends />
 
       {/* Load Program */}
       <div>
