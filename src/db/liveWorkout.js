@@ -15,17 +15,33 @@ let chain = Promise.resolve()
 // startTime -> workoutLog id, for writes queued before the reducer has the id.
 const idsByStart = new Map()
 
+const completedTimes = state =>
+  state.exercises.flatMap(ex => ex.sets.map(s => (s.completed ? s.completedAt || 0 : 0)))
+
+/** Last time anything happened in this workout (start, reopen, or a set). */
+export function lastActivityAt(state) {
+  return Math.max(state.startTime || 0, state.resumedAt || 0, ...completedTimes(state))
+}
+
+/**
+ * Workout duration. It runs to the last logged set, so reopening the app
+ * later doesn't stretch it. A workout continued from History keeps its
+ * earlier duration and adds only the time since it was reopened.
+ */
+function durationOf(state, now) {
+  const lastSetAt = Math.max(0, ...completedTimes(state))
+  if (state.resumedAt) {
+    const extra = lastSetAt > state.resumedAt ? lastSetAt - state.resumedAt : 0
+    return (state.priorDurationSeconds || 0) + Math.round(extra / 1000)
+  }
+  return Math.round(((lastSetAt || now) - state.startTime) / 1000)
+}
+
 export function buildLogEntry(state, now = Date.now()) {
-  // Duration runs to the last logged set, so reopening the app later
-  // doesn't stretch it.
-  const lastSetAt = Math.max(
-    0,
-    ...state.exercises.flatMap(ex => ex.sets.map(s => (s.completed ? s.completedAt || 0 : 0)))
-  )
   return {
     date: new Date(state.startTime).toISOString(),
     sessionLabel: state.selectedSession,
-    durationSeconds: Math.round(((lastSetAt || now) - state.startTime) / 1000),
+    durationSeconds: durationOf(state, now),
     exercises: state.exercises
       .filter(ex => !ex.isBonus && (ex.sets.some(s => s.completed) || ex.note))
       .map(ex => ({
@@ -80,7 +96,10 @@ export function syncLiveWorkout(state) {
     else id = await db.workoutLog.add(entry)
     idsByStart.set(state.startTime, id)
 
-    await updateProgressionFromWorkout(state.exercises.filter(ex => !ex.isBonus))
+    // A workout continued from History only moves progression on if it's
+    // still the latest one; otherwise it would overwrite newer weights.
+    const newer = await db.workoutLog.where('date').above(entry.date).count()
+    if (newer === 0) await updateProgressionFromWorkout(state.exercises.filter(ex => !ex.isBonus))
     pushWorkout({ ...entry, id }).catch(err => console.error('Sync: live workout push failed', err))
     getAllProgressionStates()
       .then(states => states.length && pushProgressionStates(states))
@@ -96,7 +115,15 @@ export async function deleteLoggedWorkout(state) {
   await chain
   const id = state.logId ?? idsByStart.get(state.startTime)
   if (id == null) return
-  idsByStart.delete(state.startTime)
+  await deleteWorkoutEntry(id)
+}
+
+/** Delete a History entry locally and in Supabase. */
+export async function deleteWorkoutEntry(id) {
+  await chain
+  const entry = await db.workoutLog.get(id)
+  if (entry) idsByStart.delete(Date.parse(entry.date))
+  for (const [start, logId] of idsByStart) if (logId === id) idsByStart.delete(start)
   await db.workoutLog.delete(id)
   const { error } = await supabase.from('workout_log').delete().eq('local_id', id)
   if (error) console.error('Sync: failed to delete workout', error)

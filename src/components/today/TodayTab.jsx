@@ -1,11 +1,12 @@
 import { useReducer, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
-import { getProgressionState, getProgressionStates, initializeProgressionState } from '../../db/progression'
+import { getProgressionState, initializeProgressionState } from '../../db/progression'
 import { getLastWorkoutForExercise } from '../../db/workoutLog'
-import { computeSessionWeight, updateProgressionAfterWorkout } from '../../utils/progressionEngine'
+import { computeSessionWeight } from '../../utils/progressionEngine'
 import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
-import { syncLiveWorkout, deleteLoggedWorkout } from '../../db/liveWorkout'
+import { syncLiveWorkout, deleteLoggedWorkout, lastActivityAt } from '../../db/liveWorkout'
+import { buildSessionExercises } from '../../workout/buildSession'
 import ExerciseCard from './ExerciseCard'
 import PostWorkoutSummary from './PostWorkoutSummary'
 import ExerciseWheel from './ExerciseWheel'
@@ -221,7 +222,7 @@ export default function TodayTab({ onBack }) {
       let activeWorkout = await loadActiveWorkout()
       // Sets are logged as they happen, so a workout left open (no Finish)
       // just ends once it's old enough; the next session gets suggested.
-      if (activeWorkout && Date.now() - activeWorkout.startTime > AUTO_END_AFTER_MS) {
+      if (activeWorkout && Date.now() - lastActivityAt(activeWorkout) > AUTO_END_AFTER_MS) {
         if (activeWorkout.exercises?.some(ex => ex.setsCompleted > 0)) {
           await db.settings.put({ key: 'lastSessionLabel', value: activeWorkout.selectedSession })
         }
@@ -229,7 +230,7 @@ export default function TodayTab({ onBack }) {
         activeWorkout = null
       }
       if (activeWorkout) {
-        if (sessions.some(s => s.label === activeWorkout.selectedSession)) {
+        if (activeWorkout.resumedAt || sessions.some(s => s.label === activeWorkout.selectedSession)) {
           dispatch({ type: 'RESTORE_WORKOUT', payload: activeWorkout })
           return
         }
@@ -256,52 +257,7 @@ export default function TodayTab({ onBack }) {
   async function startSession(sessionLabel) {
     const session = sessions.find(s => s.label === sessionLabel)
     if (!session) return
-
-    for (const exercise of session.exercises) {
-      await initializeProgressionState(exercise.exerciseId, exercise)
-    }
-
-    const progressionMap = await getProgressionStates(
-      session.exercises.map(e => e.exerciseId)
-    )
-
-    const exercisesWithWeights = await Promise.all(
-      session.exercises.map(async exercise => {
-        const progression = progressionMap[exercise.exerciseId]
-        const lastWorkoutData = await getLastWorkoutForExercise(exercise.exerciseId)
-
-        let sessionWeight = progression?.currentWeight || exercise.startingWeight || 0
-        let weightReason = null
-
-        if (lastWorkoutData?.exercise?.sets) {
-          const { weight, reason } = computeSessionWeight(progression, {
-            exercise,
-            sets: lastWorkoutData.exercise.sets
-          }, progressionRules)
-          sessionWeight = weight
-          weightReason = reason
-        }
-
-        return {
-          exerciseId: exercise.exerciseId,
-          name: exercise.name,
-          movementType: exercise.movementType,
-          targetReps: exercise.targetReps,
-          startingWeight: sessionWeight,
-          sets: Array.from({ length: exercise.sets }, (_, i) => ({
-            setNumber: i + 1,
-            targetReps: exercise.targetReps,
-            actualReps: null,
-            weight: sessionWeight,
-            rpe: null,
-            completed: false
-          })),
-          setsCompleted: 0,
-          weightReason,
-          alternatives: exercise.alternatives || []
-        }
-      })
-    )
+    const exercisesWithWeights = await buildSessionExercises(session, progressionRules)
 
     setStaleWorkout(null)
     dispatch({
@@ -454,10 +410,7 @@ export default function TodayTab({ onBack }) {
   if (state.mode === 'summary') {
     return (
       <PostWorkoutSummary
-        exercises={state.exercises}
-        sessionLabel={state.selectedSession}
-        startTime={state.startTime}
-        logId={state.logId}
+        workout={state}
         onDone={async () => {
           await clearActiveWorkout()
           dispatch({ type: 'RESET' })
