@@ -26,7 +26,7 @@ export default function WorkoutEntry({ entry }) {
         <div className="flex-1 min-w-0">
           <h3 className="font-semibold truncate">{entry.sessionLabel}</h3>
           <p className="text-sm text-secondary mt-0.5">
-            {dateStr} · {exercises.length} exercises · {totalSets} sets
+            {dateStr} · {exercises.length} {exercises.length === 1 ? 'exercise' : 'exercises'} · {totalSets} {totalSets === 1 ? 'set' : 'sets'}
           </p>
         </div>
         <span className="text-sm tabular-nums text-secondary">{minutes} min</span>
