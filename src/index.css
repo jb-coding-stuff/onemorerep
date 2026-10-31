@@ -85,16 +85,23 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.015em;
 }
 
+/* The background is painted on <html>: the root background covers the whole
+   canvas, including the home-indicator strip and overscroll on iOS, where a
+   body background can stop short and leave a flat black bar. */
 html {
-  background: var(--app-bg-base);
+  background: var(--app-bg);
+  background-color: var(--app-bg-base);
 }
 
-/* The body never scrolls (<main> does), so the background stays put on iOS. */
 body {
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
   font-variant-numeric: tabular-nums;
-  background: var(--app-bg);
+  background: transparent;
+}
+
+#root {
+  height: 100dvh;
 }
 
 @layer components {

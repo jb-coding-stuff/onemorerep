@@ -11,6 +11,16 @@ import PostWorkoutSummary from './PostWorkoutSummary'
 import ExerciseWheel from './ExerciseWheel'
 import { BackIcon, ListIcon, FocusIcon, IconButton } from '../icons'
 
+/** "today", "yesterday", "3 days ago", or a short date after two weeks. */
+function formatLastDone(iso) {
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const days = Math.round((startOfDay(new Date()) - startOfDay(new Date(iso))) / 86400000)
+  if (days <= 0) return 'today'
+  if (days === 1) return 'yesterday'
+  if (days <= 14) return `${days} days ago`
+  return new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })
+}
+
 const AUTO_END_AFTER_MS = 12 * 60 * 60 * 1000
 
 const initialState = {
@@ -161,6 +171,12 @@ function workoutReducer(state, action) {
 
 export default function TodayTab({ onBack }) {
   const program = useLiveQuery(() => db.program.toArray().then(p => p[0]))
+  // Most recent date each session label was trained.
+  const lastDone = useLiveQuery(async () => {
+    const map = {}
+    for (const w of await db.workoutLog.orderBy('date').toArray()) map[w.sessionLabel] = w.date
+    return map
+  }, [], {})
   const [state, dispatch] = useReducer(workoutReducer, initialState)
   const [suggestedSession, setSuggestedSession] = useState(null)
   // In-progress workout whose session isn't in the current plan (plan was switched).
@@ -417,6 +433,7 @@ export default function TodayTab({ onBack }) {
               <div className="font-semibold">{session.label}</div>
               <div className={`text-sm mt-1 ${session.label === suggestedSession ? 'text-[color:var(--accent-text)] font-medium' : 'text-secondary'}`}>
                 {session.exercises.length} exercises
+                {lastDone[session.label] && ` · ${formatLastDone(lastDone[session.label])}`}
                 {session.label === suggestedSession && ' · suggested'}
               </div>
             </button>
