@@ -42,7 +42,11 @@ html {
   --accent-text: #8ea6ff; /* royal blue lifted for small text on black */
   /* Soft light sources for the glass to catch: a cool white key light top
      left and muted royal-blue glows, kept low so the base still reads black. */
+  /* The first layer fades the glows out at the top and bottom edges, so the
+     page meets Safari's flat status-bar and toolbar strips (theme-color)
+     without a visible seam. */
   --app-bg:
+    linear-gradient(to bottom, #0a0a0c, rgba(10, 10, 12, 0) 14%, rgba(10, 10, 12, 0) 86%, #0a0a0c),
     radial-gradient(60% 38% at 0% 0%, rgba(255, 255, 255, .09), transparent 70%),
     radial-gradient(55% 35% at 100% 18%, rgba(65, 105, 225, .20), transparent 70%),
     radial-gradient(60% 40% at 0% 78%, rgba(65, 105, 225, .12), transparent 70%),
