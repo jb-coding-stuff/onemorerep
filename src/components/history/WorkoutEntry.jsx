@@ -13,7 +13,7 @@ export default function WorkoutEntry({ entry }) {
   const minutes = Math.round((entry.durationSeconds || 0) / 60)
   const exercises = (entry.exercises || [])
     .map(ex => ({ ...ex, done: completedSets(ex) }))
-    .filter(ex => ex.done.length > 0)
+    .filter(ex => ex.done.length > 0 || ex.note)
   const totalSets = exercises.reduce((s, ex) => s + ex.done.length, 0)
 
   return (
@@ -44,6 +44,9 @@ export default function WorkoutEntry({ entry }) {
                 {exercise.name}
                 {exercise.wasSwapped && <span className="text-secondary font-normal"> · swapped</span>}
               </div>
+              {exercise.note && (
+                <p className="text-sm text-secondary italic mb-2 whitespace-pre-wrap">“{exercise.note}”</p>
+              )}
               <div className="space-y-1">
                 {exercise.done.map((s, i) => (
                   <div key={i} className="flex text-sm tabular-nums">

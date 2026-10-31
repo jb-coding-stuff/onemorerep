@@ -8,6 +8,7 @@ import SwapDrawer from './SwapDrawer'
 import BonusRound from './BonusRound'
 import ExerciseHistorySheet, { avgRpe, formatSets } from './ExerciseHistorySheet'
 import BodyPortal from '../BodyPortal'
+import { NoteIcon } from '../icons'
 
 const fmtDate = d => new Date(d).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })
 
@@ -18,6 +19,7 @@ export default function ExerciseCard({
   onSetComplete,
   onSuggestWeight,
   onSwap,
+  onNote,
   onBonusRound,
   isAllDone,
   isActive = true,
@@ -29,6 +31,8 @@ export default function ExerciseCard({
   const [history, setHistory] = useState(null) // null = not loaded, [] = none
   const [showLast, setShowLast] = useState(false)
   const [showSheet, setShowSheet] = useState(false)
+  const [editingNote, setEditingNote] = useState(false)
+  const [draft, setDraft] = useState('')
   const { compoundRest, isolationRest } = useSettings()
   const restTimer = useRestTimer()
 
@@ -46,15 +50,28 @@ export default function ExerciseCard({
     return () => setInlineKey(k => (k === restKey ? null : k))
   }, [countdownVisible, restKey, setInlineKey])
 
-  async function toggleLast() {
-    if (history == null) {
-      const sessions = await getRecentSessionsForExercise(exercise.exerciseId, exercise.name, {
-        excludeDate: workoutDate,
-        limit: 5
-      })
-      setHistory(sessions)
-    }
+  // Load recent sessions up front: the last session's comment shows under the title.
+  useEffect(() => {
+    let cancelled = false
+    getRecentSessionsForExercise(exercise.exerciseId, exercise.name, { excludeDate: workoutDate, limit: 5 })
+      .then(sessions => { if (!cancelled) setHistory(sessions) })
+      .catch(() => { if (!cancelled) setHistory([]) })
+    return () => { cancelled = true }
+  }, [exercise.exerciseId, exercise.name, workoutDate])
+
+  function toggleLast() {
     setShowLast(v => !v)
+  }
+
+  function startNote() {
+    setDraft(exercise.note || '')
+    setEditingNote(true)
+  }
+
+  function saveNote() {
+    const text = draft.trim()
+    if (text !== (exercise.note || '')) onNote?.(text)
+    setEditingNote(false)
   }
 
   function handleDone(setIdx, reps, rpe, weight) {
@@ -73,7 +90,9 @@ export default function ExerciseCard({
     setOpenIndex(next >= 0 ? next : null)
   }
 
-  const last = history?.[0]
+  const last = history?.find(s => s.sets.length)
+  const prevNote = history?.[0]?.note ? history[0] : null
+  const withSets = history?.filter(s => s.sets.length) || []
   const lastRpe = last ? avgRpe(last.sets) : null
 
   return (
@@ -89,6 +108,15 @@ export default function ExerciseCard({
             <p className="text-xs text-secondary mt-1">{exercise.weightReason}</p>
           )}
         </button>
+
+        {prevNote && (
+          <p className="mt-1.5 flex gap-1.5 text-sm text-secondary">
+            <span className="mt-0.5 shrink-0"><NoteIcon size={14} /></span>
+            <span className="min-w-0 whitespace-pre-wrap">
+              <span className="italic">{prevNote.note}</span> · {fmtDate(prevNote.date)}
+            </span>
+          </p>
+        )}
 
         {showLast && (
           <div className="mt-2 flex items-baseline gap-3 text-sm">
@@ -128,12 +156,45 @@ export default function ExerciseCard({
           ))}
         </div>
 
-        <button
-          onClick={() => setShowSwap(true)}
-          className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
-        >
-          ⇄ Swap
-        </button>
+        {editingNote ? (
+          <div className="mt-4">
+            <textarea
+              autoFocus
+              rows={2}
+              value={draft}
+              onChange={e => setDraft(e.target.value)}
+              placeholder="Comment for next time, e.g. seat 4, felt easy"
+              aria-label="Exercise comment"
+              className="w-full px-3 py-2.5 bg-white/[.06] border border-white/10 rounded-xl text-sm resize-none"
+            />
+            <div className="flex gap-2 mt-2">
+              <button onClick={saveNote} className="btn-primary flex-1 py-2 text-sm font-medium">Save</button>
+              <button onClick={() => setEditingNote(false)} className="btn-glass flex-1 py-2 text-sm">Cancel</button>
+            </div>
+          </div>
+        ) : exercise.note ? (
+          <button onClick={startNote} className="mt-4 w-full flex gap-1.5 text-left text-sm" aria-label="Edit comment">
+            <span className="mt-0.5 shrink-0 text-secondary"><NoteIcon size={14} /></span>
+            <span className="min-w-0 whitespace-pre-wrap">{exercise.note}</span>
+          </button>
+        ) : null}
+
+        <div className="mt-4 flex gap-2">
+          <button
+            onClick={() => setShowSwap(true)}
+            className="flex-1 py-2 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
+          >
+            ⇄ Swap
+          </button>
+          {!editingNote && (
+            <button
+              onClick={startNote}
+              className="flex-1 py-2 flex items-center justify-center gap-1.5 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
+            >
+              <NoteIcon size={16} /> {exercise.note ? 'Edit comment' : 'Comment'}
+            </button>
+          )}
+        </div>
 
         {isAllDone && (
           <BonusRound
@@ -143,9 +204,9 @@ export default function ExerciseCard({
         )}
       </div>
 
-      {showSheet && history?.length > 0 && (
+      {showSheet && withSets.length > 0 && (
         <BodyPortal>
-          <ExerciseHistorySheet name={exercise.name} sessions={history} onClose={() => setShowSheet(false)} />
+          <ExerciseHistorySheet name={exercise.name} sessions={withSets} onClose={() => setShowSheet(false)} />
         </BodyPortal>
       )}
 

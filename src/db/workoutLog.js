@@ -90,7 +90,8 @@ export async function getRecentSessionsForExercise(exerciseId, name, { excludeDa
     const sets = (ex?.sets || [])
       .filter(s => s.completed && (s.actualReps ?? 0) > 0)
       .map(s => ({ weight: Number(s.weight) || 0, reps: s.actualReps, rpe: s.rpe ?? null }))
-    if (sets.length) out.push({ date: w.date, sets })
+    const note = ex?.note || null
+    if (sets.length || note) out.push({ date: w.date, sets, note })
     if (out.length >= limit) break
   }
   return out

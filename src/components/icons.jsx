@@ -19,6 +19,15 @@ export function FocusIcon() {
   return <Icon><rect x="5" y="8" width="14" height="8" rx="2" /><path d="M8 4h8M8 20h8" /></Icon>
 }
 
+export function NoteIcon({ size = 22 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 5h16v11H9l-5 4z" />
+    </svg>
+  )
+}
+
 export function IconButton({ label, onClick, children }) {
   return (
     <button

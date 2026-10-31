@@ -72,6 +72,13 @@ function workoutReducer(state, action) {
       return { ...state, exercises: updated }
     }
 
+    case 'SET_NOTE': {
+      const { exerciseIndex, note } = action.payload
+      const updated = [...state.exercises]
+      updated[exerciseIndex] = { ...updated[exerciseIndex], note }
+      return { ...state, exercises: updated }
+    }
+
     case 'SUGGEST_WEIGHT': {
       const { exerciseIndex, setIndex, newWeight } = action.payload
       const updated = [...state.exercises]
@@ -94,6 +101,7 @@ function workoutReducer(state, action) {
           rpe: null,
           completed: false
         })),
+        note: '',
         wasSwapped: true,
         swappedFrom: updated[exerciseIndex].exerciseId,
         setsCompleted: 0
@@ -192,7 +200,7 @@ export default function TodayTab({ onBack }) {
 
   // Log completed sets to History + Supabase as they happen.
   const loggedSignature = state.mode === 'picking' ? '' : state.exercises
-    .map(ex => ex.sets.filter(s => s.completed).map(s => `${s.actualReps}x${s.weight}@${s.rpe}`).join(','))
+    .map(ex => ex.sets.filter(s => s.completed).map(s => `${s.actualReps}x${s.weight}@${s.rpe}`).join(',') + (ex.note ? `#${ex.note}` : ''))
     .join('|')
   useEffect(() => {
     if (!loggedSignature.replace(/\|/g, '')) return
@@ -480,6 +488,7 @@ export default function TodayTab({ onBack }) {
           })
         }
         onSwap={(newExercise) => handleSwap(idx, newExercise)}
+        onNote={(note) => dispatch({ type: 'SET_NOTE', payload: { exerciseIndex: idx, note } })}
         onBonusRound={(bonusEx) =>
           dispatch({
             type: 'ADD_BONUS_ROUND',
