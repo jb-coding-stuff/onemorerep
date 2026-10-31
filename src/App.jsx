@@ -12,7 +12,7 @@ import { restoreFromSupabase } from './db/sync'
 import { syncWorkouts } from './db/workoutSync'
 import { supabase } from './db/supabase'
 import { setCurrentUser, claimLocalData } from './db/auth'
-import AuthScreen from './components/AuthScreen'
+import AuthScreen, { NewPasswordScreen } from './components/AuthScreen'
 import { migrateLegacyCustomExercises } from './db/exerciseCatalog'
 import { ensureProgramSystem, syncPacksFromRemote, activateInitialPack } from './program/localProvider'
 
@@ -87,6 +87,8 @@ function AppContent() {
  */
 function AuthGate({ children }) {
   const [userId, setUserId] = useState(undefined) // undefined = checking
+  // Opened from a password reset email: ask for the new password first.
+  const [recovering, setRecovering] = useState(() => window.location.hash.includes('type=recovery'))
 
   useEffect(() => {
     let current // undefined until the first answer
@@ -104,7 +106,8 @@ function AuthGate({ children }) {
     }
     supabase.auth.getSession().then(({ data }) => apply(data.session))
     // Don't call Supabase inside this callback (it can deadlock the client).
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true)
       setTimeout(() => apply(session), 0)
     })
     return () => data.subscription.unsubscribe()
@@ -112,6 +115,7 @@ function AuthGate({ children }) {
 
   if (userId === undefined) return <div className="w-full h-full" />
   if (!userId) return <AuthScreen />
+  if (recovering) return <NewPasswordScreen onDone={() => setRecovering(false)} />
   return children
 }
 

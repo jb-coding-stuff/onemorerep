@@ -84,6 +84,19 @@ export default function MeTab({ onBack }) {
     }
   }
 
+  async function handleDeleteAccount() {
+    if (!confirm('Delete your account? All your workouts, weights, plans and exercises are deleted for good, on every device.')) return
+    if (prompt('Type DELETE to confirm.')?.trim() !== 'DELETE') return
+    const { error } = await supabase.rpc('delete_my_account')
+    if (error) {
+      alert(`Could not delete the account: ${error.message}`)
+      return
+    }
+    await supabase.auth.signOut({ scope: 'local' })
+    await wipeLocalData()
+    window.location.reload()
+  }
+
   async function handleSignOut() {
     await syncWorkouts()
     const pending = (await db.workoutLog.toArray()).some(w => w.pendingSync)
@@ -405,6 +418,12 @@ export default function MeTab({ onBack }) {
           className="w-full py-4 text-left font-medium text-red-400 border-t border-white/[.06] transition-opacity active:opacity-60"
         >
           Clear Data on This Device
+        </button>
+        <button
+          onClick={handleDeleteAccount}
+          className="w-full py-4 text-left text-sm text-secondary border-t border-white/[.06] transition-opacity active:opacity-60"
+        >
+          Delete Account
         </button>
       </div>
     </div>
