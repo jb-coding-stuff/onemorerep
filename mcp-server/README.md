@@ -48,18 +48,21 @@ npm install
 
 ### Required environment variables
 
-| Var | Required | Purpose |
-| --- | --- | --- |
-| `SUPABASE_URL` | **yes** | Your Supabase project URL. |
-| `SUPABASE_SERVICE_KEY` | recommended | Service role key. Preferred for **writes** — it bypasses RLS. |
-| `SUPABASE_ANON_KEY` | fallback | Used if no service key is set. Reads always work; **writes may be blocked by RLS**. |
+The server signs in with **your fitness app account**, so it only ever sees and
+changes your own plans, exercises and history (Row Level Security, same as the
+app). Every friend runs their own copy with their own login.
 
-For **writes** (`commit_import`), the anon key may be blocked by row-level
-security, so a **service role key (`SUPABASE_SERVICE_KEY`) is recommended** for
-the server. If both are set, the service key is used.
+| Var | Purpose |
+| --- | --- |
+| `SUPABASE_URL` | The app's Supabase project URL. |
+| `SUPABASE_ANON_KEY` | The app's public anon key (the same one the web app uses; ask whoever runs the app). |
+| `APP_EMAIL` | Your login email for the fitness app. |
+| `APP_PASSWORD` | Your password for the fitness app. |
 
-If `SUPABASE_URL` (or any usable key) is missing, the server exits immediately
-with a clear message instead of failing mid-request.
+Create your account in the app first (sign up on the web app), then use the
+same email and password here. If anything is missing, the server exits
+immediately with a clear message; a wrong password fails on the first request
+with a clear error.
 
 ### Run
 
@@ -84,15 +87,28 @@ same `mcpServers` shape (e.g. via `.mcp.json` or `claude mcp add`).
       "args": ["/absolute/path/to/mcp-server/src/index.js"],
       "env": {
         "SUPABASE_URL": "https://YOUR-PROJECT.supabase.co",
-        "SUPABASE_SERVICE_KEY": "YOUR-SERVICE-ROLE-KEY"
+        "SUPABASE_ANON_KEY": "THE-APP-ANON-KEY",
+        "APP_EMAIL": "you@example.com",
+        "APP_PASSWORD": "your-app-password"
       }
     }
   }
 }
 ```
 
-Replace `/absolute/path/to/` with the real path to this directory. Get the
-service role key from Supabase → **Settings → API → `service_role`**.
+Replace `/absolute/path/to/` with the real path to this directory. The config
+file holds your app password, so keep it private (don't commit or share it).
+
+### Setup for friends (one time)
+
+1. Install [Node.js](https://nodejs.org) (LTS) and the Claude Desktop app.
+2. Create your account in the fitness app.
+3. Download this repository and run `npm install` in `mcp-server`.
+4. In Claude Desktop: Settings → Developer → Edit Config, add the block above
+   with your own path, email and password, then restart Claude Desktop.
+5. Ask Claude to turn your plan (PDF, Excel, or a description) into a program
+   for the app. It previews the mapping first and only writes after you confirm.
+   The new plan shows up in the app the next time you open it.
 
 ## Phone / other devices
 

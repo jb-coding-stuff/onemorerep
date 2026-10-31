@@ -33,17 +33,18 @@ import { validateProgramPack } from './schema.js'
 // --- Data access ------------------------------------------------------------
 
 async function fetchCatalog() {
-  const { client } = getSupabase()
-  const { data, error } = await client.from('exercise_catalog').select('*')
+  const { client, userId } = await getSupabase()
+  const { data, error } = await client.from('exercise_catalog').select('*').eq('user_id', userId)
   if (error) throw new Error(`exercise_catalog read failed: ${error.message}`)
   return (data || []).map(mapCatalogRow)
 }
 
 async function fetchActivePack() {
-  const { client } = getSupabase()
+  const { client, userId } = await getSupabase()
   const { data, error } = await client
     .from('program_pack')
     .select('*')
+    .eq('user_id', userId)
     .eq('is_active', true)
     .limit(1)
   if (error) throw new Error(`program_pack read failed: ${error.message}`)
@@ -51,7 +52,7 @@ async function fetchActivePack() {
 }
 
 async function fetchWorkouts() {
-  const { client } = getSupabase()
+  const { client } = await getSupabase()
   const { data, error } = await client
     .from('workout_log')
     .select('*')
@@ -357,7 +358,7 @@ async function commitImport(pack) {
     return { ok: false, errors }
   }
 
-  const { client } = getSupabase()
+  const { client, userId } = await getSupabase()
   const now = new Date().toISOString()
 
   // 1. Gather catalog additions: pack.catalog plus any inline entries carried on
@@ -392,6 +393,7 @@ async function commitImport(pack) {
     const { data: existingRows, error: readErr } = await client
       .from('exercise_catalog')
       .select('*')
+      .eq('user_id', userId)
       .in('canonical_id', ids)
     if (readErr) throw new Error(`exercise_catalog read failed: ${readErr.message}`)
     const existingById = new Map((existingRows || []).map((r) => [r.canonical_id, mapCatalogRow(r)]))
@@ -412,12 +414,12 @@ async function commitImport(pack) {
         equipment: incoming.equipment ?? existing?.equipment ?? null,
         defaultIncrementKg: incoming.defaultIncrementKg ?? existing?.defaultIncrementKg ?? null
       }
-      return toCatalogRow(merged, now)
+      return { user_id: userId, ...toCatalogRow(merged, now) }
     })
 
     const { error: upErr } = await client
       .from('exercise_catalog')
-      .upsert(rows, { onConflict: 'canonical_id' })
+      .upsert(rows, { onConflict: 'user_id,canonical_id' })
     if (upErr) throw new Error(`exercise_catalog upsert failed: ${upErr.message}`)
   }
 
@@ -425,6 +427,7 @@ async function commitImport(pack) {
   //    so exactly one pack is active.
   const version = Number.isInteger(pack.version) ? pack.version : 1
   const packRow = {
+    user_id: userId,
     pack_id: pack.packId,
     version,
     name: pack.name,
@@ -436,12 +439,13 @@ async function commitImport(pack) {
   }
   const { error: packErr } = await client
     .from('program_pack')
-    .upsert(packRow, { onConflict: 'pack_id' })
+    .upsert(packRow, { onConflict: 'user_id,pack_id' })
   if (packErr) throw new Error(`program_pack upsert failed: ${packErr.message}`)
 
   const { error: clearErr } = await client
     .from('program_pack')
     .update({ is_active: false })
+    .eq('user_id', userId)
     .neq('pack_id', pack.packId)
   if (clearErr) throw new Error(`clearing other active packs failed: ${clearErr.message}`)
 
@@ -456,8 +460,8 @@ async function main() {
     // Fail fast with a clear, actionable message rather than crashing later.
     console.error(`[fitness-tracker-mcp] ${env.error}`)
     console.error(
-      '[fitness-tracker-mcp] Required: SUPABASE_URL. Keys: SUPABASE_SERVICE_KEY ' +
-        '(recommended) or SUPABASE_ANON_KEY.'
+      '[fitness-tracker-mcp] Required: SUPABASE_URL, SUPABASE_ANON_KEY, APP_EMAIL, APP_PASSWORD ' +
+        '(your fitness app login).'
     )
     process.exit(1)
   }

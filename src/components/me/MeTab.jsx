@@ -9,6 +9,10 @@ import {
 import { BackIcon, IconButton } from '../icons'
 import ExerciseLibrary from './ExerciseLibrary'
 import { useSettings } from '../../contexts/SettingsContext'
+import { supabase } from '../../db/supabase'
+import { currentUser, displayName, wipeLocalData } from '../../db/auth'
+import { syncWorkouts } from '../../db/workoutSync'
+import { setPackShared, listSharedPacks, adoptSharedPack } from '../../program/sharing'
 
 function formatDuration(seconds) {
   const m = Math.floor(seconds / 60)
@@ -31,6 +35,10 @@ export default function MeTab({ onBack }) {
   const [switchingTo, setSwitchingTo] = useState(null)
   const [switchError, setSwitchError] = useState(null)
   const [offlineSwitch, setOfflineSwitch] = useState(false)
+  const [friendPacks, setFriendPacks] = useState([])
+  const [sharingId, setSharingId] = useState(null)
+  const [adoptingId, setAdoptingId] = useState(null)
+  const user = currentUser()
 
   useEffect(() => {
     getAvailablePacks()
@@ -39,7 +47,53 @@ export default function MeTab({ onBack }) {
         setActivePackId(activePackId)
       })
       .catch(err => console.error('Failed to load plans:', err))
+    listSharedPacks()
+      .then(setFriendPacks)
+      .catch(err => console.error('Failed to load shared plans:', err))
   }, [])
+
+  async function toggleShare(pack) {
+    const next = !pack.shared
+    if (next && !confirm(`Share "${pack.name}"? Everyone with an account can copy it. Your workouts and weights stay private.`)) return
+    setSharingId(pack.packId)
+    setSwitchError(null)
+    try {
+      await setPackShared(pack.packId, next)
+      setPacks(ps => ps.map(p => (p.packId === pack.packId ? { ...p, shared: next } : p)))
+    } catch (err) {
+      console.error('Failed to share plan:', err)
+      setSwitchError(err.message || 'Sharing failed (are you online?)')
+    } finally {
+      setSharingId(null)
+    }
+  }
+
+  async function handleAdopt(row) {
+    const by = row.owner_name ? ` by ${row.owner_name}` : ''
+    if (!confirm(`Add "${row.name}"${by} to your plans and switch to it?\n\nYour workout history and weights are kept.`)) return
+    setAdoptingId(`${row.user_id}:${row.pack_id}`)
+    setSwitchError(null)
+    try {
+      await adoptSharedPack(row)
+      window.location.reload()
+    } catch (err) {
+      console.error('Failed to add shared plan:', err)
+      setSwitchError(err.message || 'Could not add the plan')
+      setAdoptingId(null)
+    }
+  }
+
+  async function handleSignOut() {
+    await syncWorkouts()
+    const pending = (await db.workoutLog.toArray()).some(w => w.pendingSync)
+    const msg = pending
+      ? 'Some workouts haven\'t uploaded yet (no connection). Signing out now deletes them from this phone. Sign out anyway?'
+      : 'Sign out? Your data stays in your account and comes back when you sign in.'
+    if (!confirm(msg)) return
+    await supabase.auth.signOut({ scope: 'local' })
+    await wipeLocalData()
+    window.location.reload()
+  }
 
   async function handleSwitchPack(pack) {
     if (pack.packId === activePackId || switchingTo) return
@@ -105,7 +159,7 @@ export default function MeTab({ onBack }) {
   }
 
   async function handleReset() {
-    if (confirm('This will delete all data. Are you sure?')) {
+    if (confirm('Clear all data on this device? Anything already uploaded comes back from your account; workouts that haven\'t uploaded yet are lost.')) {
       try {
         await Promise.all([
           db.program.clear(),
@@ -184,27 +238,65 @@ export default function MeTab({ onBack }) {
               const isActive = pack.packId === activePackId
               const isSwitching = pack.packId === switchingTo
               return (
-                <button
+                <div
                   key={pack.packId}
-                  onClick={() => handleSwitchPack(pack)}
-                  disabled={isActive || !!switchingTo}
-                  className={`w-full flex items-center justify-between gap-3 py-3 border-b border-white/[.06] last:border-b-0 text-left transition-opacity disabled:cursor-default ${
-                    isActive ? '' : 'opacity-60 hover:opacity-100'
-                  } ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
+                  className={`flex items-center gap-3 border-b border-white/[.06] last:border-b-0 ${switchingTo && !isSwitching ? 'opacity-50' : ''}`}
                 >
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium truncate">{pack.name}</div>
-                    <div className="text-xs text-secondary truncate">
-                      {pack.sessions.length} days · {pack.sessions.map(s => s.label).join(', ')}
+                  <button
+                    onClick={() => handleSwitchPack(pack)}
+                    disabled={isActive || !!switchingTo}
+                    className={`flex-1 min-w-0 flex items-center justify-between gap-3 py-3 text-left transition-opacity disabled:cursor-default ${
+                      isActive ? '' : 'opacity-60 hover:opacity-100'
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{pack.name}</div>
+                      <div className="text-xs text-secondary truncate">
+                        {pack.sessions.length} days · {pack.sessions.map(s => s.label).join(', ')}
+                      </div>
                     </div>
-                  </div>
-                  <span className="text-sm shrink-0 font-semibold">
-                    {isSwitching ? 'Switching…' : isActive ? '✓' : ''}
-                  </span>
-                </button>
+                    <span className="text-sm shrink-0 font-semibold">
+                      {isSwitching ? 'Switching…' : isActive ? '✓' : ''}
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => toggleShare(pack)}
+                    disabled={sharingId === pack.packId}
+                    aria-pressed={!!pack.shared}
+                    className={`shrink-0 text-xs px-2 py-1 rounded-full transition-colors disabled:opacity-50 ${
+                      pack.shared ? 'text-[color:var(--accent-text)]' : 'text-secondary hover:text-[color:var(--ink)]'
+                    }`}
+                  >
+                    {sharingId === pack.packId ? '…' : pack.shared ? 'Shared' : 'Share'}
+                  </button>
+                </div>
               )
             })}
           </div>
+          {friendPacks.length > 0 && (
+            <div className="pt-4">
+              <h3 className="text-xs text-secondary uppercase tracking-wide mb-1">From friends</h3>
+              {friendPacks.map(row => {
+                const key = `${row.user_id}:${row.pack_id}`
+                return (
+                  <button
+                    key={key}
+                    onClick={() => handleAdopt(row)}
+                    disabled={!!adoptingId}
+                    className="w-full flex items-center justify-between gap-3 py-3 border-b border-white/[.06] last:border-b-0 text-left opacity-60 hover:opacity-100 transition-opacity disabled:opacity-40"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium truncate">{row.name}</div>
+                      <div className="text-xs text-secondary truncate">
+                        {row.owner_name ? `by ${row.owner_name} · ` : ''}{(row.sessions || []).length} days
+                      </div>
+                    </div>
+                    <span className="text-sm shrink-0 text-secondary">{adoptingId === key ? 'Adding…' : '+'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           {switchError && (
             <p className="notice text-xs text-red-400 break-words">{switchError}</p>
           )}
@@ -292,13 +384,24 @@ export default function MeTab({ onBack }) {
         )}
       </div>
 
-      {/* Reset */}
+      {/* Account */}
       <div className="pb-10">
+        <div className="py-4 border-t border-white/[.06]">
+          <div className="text-xs text-secondary uppercase tracking-wide mb-1">Account</div>
+          <div className="text-sm font-medium">{displayName(user)}</div>
+          <div className="text-xs text-secondary">{user?.email}</div>
+        </div>
+        <button
+          onClick={handleSignOut}
+          className="w-full py-4 text-left font-medium border-t border-white/[.06] transition-opacity active:opacity-60"
+        >
+          Sign Out
+        </button>
         <button
           onClick={handleReset}
           className="w-full py-4 text-left font-medium text-red-400 border-t border-white/[.06] transition-opacity active:opacity-60"
         >
-          Reset All Data
+          Clear Data on This Device
         </button>
       </div>
     </div>

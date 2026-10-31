@@ -1,5 +1,6 @@
 import { db } from './db'
 import { supabase } from './supabase'
+import { currentUserId } from './auth'
 
 /**
  * Reliable workout sync between this device and Supabase.
@@ -33,6 +34,7 @@ const completedCount = exercises =>
 
 function toRow(w) {
   return {
+    user_id: currentUserId(),
     client_id: w.clientId,
     local_id: w.id,
     date: w.date,
