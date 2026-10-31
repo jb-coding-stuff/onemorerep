@@ -50,3 +50,13 @@ create table if not exists program_pack (
 -- create policy "anon read program_pack"  on program_pack for select using (true);
 -- create policy "anon write program_pack" on program_pack for insert with check (true);
 -- create policy "anon update program_pack" on program_pack for update using (true) with check (true);
+
+-- workout_log sync key (applied 2026-10-31). Each device numbers workouts
+-- from 1, so local_id can't identify a workout across devices; client_id is a
+-- per-workout unique id. deleted_at marks deletions so every device drops them.
+-- alter table workout_log add column client_id text;
+-- update workout_log set client_id = 'legacy-' || local_id;
+-- alter table workout_log alter column client_id set not null;
+-- alter table workout_log drop constraint workout_log_pkey;
+-- alter table workout_log add primary key (client_id);
+-- alter table workout_log add column deleted_at timestamptz;
