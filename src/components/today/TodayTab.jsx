@@ -7,6 +7,7 @@ import { computeSessionWeight } from '../../utils/progressionEngine'
 import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
 import { syncLiveWorkout, deleteLoggedWorkout, lastActivityAt } from '../../db/liveWorkout'
 import { buildSessionExercises } from '../../workout/buildSession'
+import { nextSessionLabel } from '../../workout/nextSession'
 import ExerciseCard from './ExerciseCard'
 import PostWorkoutSummary from './PostWorkoutSummary'
 import ExerciseWheel from './ExerciseWheel'
@@ -28,12 +29,14 @@ const AUTO_END_AFTER_MS = 60 * 60 * 1000
 
 const isIdle = workout => Date.now() - lastActivityAt(workout) > AUTO_END_AFTER_MS
 
-/** End an idle workout: its sets stay in History, the next session gets suggested. */
-async function endIdleWorkout(workout) {
-  if (workout.exercises?.some(ex => ex.sets?.some(s => s.completed))) {
-    await db.settings.put({ key: 'lastSessionLabel', value: workout.selectedSession })
-  }
+/** End an idle workout: its sets stay in History, which decides the next session. */
+async function endIdleWorkout() {
   await clearActiveWorkout()
+}
+
+/** Remember a skipped session so the suggestion moves past it (this device). */
+async function recordSkip(label) {
+  await db.settings.put({ key: 'lastSkip', value: { label, at: new Date().toISOString() } })
 }
 
 const initialState = {
@@ -198,13 +201,17 @@ export default function TodayTab({ onBack }) {
     for (const w of await db.workoutLog.orderBy('date').toArray()) map[w.sessionLabel] = w.date
     return map
   }, [], {})
+  const lastSkip = useLiveQuery(() => db.settings.get('lastSkip').then(r => r?.value || null), [], null)
   const [state, dispatch] = useReducer(workoutReducer, initialState)
-  const [suggestedSession, setSuggestedSession] = useState(null)
+  // The picker waits until we know there's no open workout to restore.
+  const [checkedActive, setCheckedActive] = useState(false)
   // In-progress workout whose session isn't in the current plan (plan was switched).
   const [staleWorkout, setStaleWorkout] = useState(null)
 
   const sessions = program?.sessions || []
   const progressionRules = program?.progressionRules
+  // Recomputed whenever History changes (including workouts synced in).
+  const suggestedSession = nextSessionLabel(sessions, lastDone, lastSkip)
 
   // Save active workout to database whenever state changes
   useEffect(() => {
@@ -233,7 +240,7 @@ export default function TodayTab({ onBack }) {
     const check = () => {
       if (ending || document.visibilityState === 'hidden' || !isIdle(state)) return
       ending = true
-      endIdleWorkout(state).then(() => dispatch({ type: 'RESET' }))
+      endIdleWorkout().then(() => dispatch({ type: 'RESET' }))
     }
     check()
     const timer = setInterval(check, 60 * 1000)
@@ -254,7 +261,7 @@ export default function TodayTab({ onBack }) {
       // Sets are logged as they happen, so a workout left open (no Finish)
       // just ends once it's old enough; the next session gets suggested.
       if (activeWorkout && isIdle(activeWorkout)) {
-        await endIdleWorkout(activeWorkout)
+        await endIdleWorkout()
         activeWorkout = null
       }
       if (activeWorkout) {
@@ -264,19 +271,8 @@ export default function TodayTab({ onBack }) {
         }
         setStaleWorkout(activeWorkout)
       }
+      setCheckedActive(true)
 
-      const lastSessionSetting = await db.settings.get('lastSessionLabel')
-      const lastSessionLabel = lastSessionSetting?.value
-
-      let nextSessionLabel = sessions[0].label
-      if (lastSessionLabel) {
-        const lastSessionIdx = sessions.findIndex(s => s.label === lastSessionLabel)
-        if (lastSessionIdx >= 0) {
-          nextSessionLabel = sessions[(lastSessionIdx + 1) % sessions.length].label
-        }
-      }
-
-      setSuggestedSession(nextSessionLabel)
     }
 
     loadOrStartWorkout()
@@ -382,7 +378,7 @@ export default function TodayTab({ onBack }) {
   }
 
 
-  if (state.mode === 'picking' && suggestedSession) {
+  if (state.mode === 'picking' && checkedActive && suggestedSession) {
     return (
       <div className="px-4 flex flex-col min-h-full" style={{ paddingTop: '1.5rem', paddingBottom: '5rem' }}>
         <div className="flex items-center gap-2 mb-8">
@@ -539,8 +535,8 @@ export default function TodayTab({ onBack }) {
                 if (!confirm('Delete this workout? Its logged sets will be removed from History.')) return
                 await deleteLoggedWorkout(state)
               }
-              // Save current session as "last completed" before skipping
-              await db.settings.put({ key: 'lastSessionLabel', value: state.selectedSession })
+              // The suggestion moves past a skipped (or deleted) session.
+              await recordSkip(state.selectedSession)
               await clearActiveWorkout()
               dispatch({ type: 'SKIP_WORKOUT' })
             }}

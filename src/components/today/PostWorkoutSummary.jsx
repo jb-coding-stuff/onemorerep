@@ -2,12 +2,11 @@ import { useState } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { logWorkout } from '../../db/workoutLog'
 import { syncLiveWorkout, buildLogEntry } from '../../db/liveWorkout'
-import { db } from '../../db/db'
 import { syncProgression } from '../../db/progressionSync'
 import { uploadWorkout } from '../../db/workoutSync'
 
 export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
-  const { exercises, selectedSession: sessionLabel } = workout
+  const { exercises } = workout
   const [saving, setSaving] = useState(false)
   const { displayWeight } = useSettings()
 
@@ -22,12 +21,8 @@ export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
       const liveId = await syncLiveWorkout(workout)
       const id = liveId ?? await logWorkout(buildLogEntry(workout))
 
-      // Progression was updated with each logged set. The next suggested
-      // session follows this one, unless a newer workout exists (continued
-      // from History).
-      const saved = await db.workoutLog.get(id)
-      const newer = saved ? await db.workoutLog.where('date').above(saved.date).count() : 0
-      if (newer === 0) await db.settings.put({ key: 'lastSessionLabel', value: sessionLabel })
+      // Progression was updated with each logged set; History decides the
+      // next suggested session.
 
       // Sync to Supabase in background (fire and forget)
       uploadWorkout(id).catch(err => console.error('Sync: workout upload failed', err))
