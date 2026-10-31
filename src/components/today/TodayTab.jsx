@@ -22,7 +22,19 @@ function formatLastDone(iso) {
   return new Date(iso).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })
 }
 
-const AUTO_END_AFTER_MS = 12 * 60 * 60 * 1000
+// An unfinished workout ends after an hour without a logged set. Its
+// duration already stops at the last logged set (see buildLogEntry).
+const AUTO_END_AFTER_MS = 60 * 60 * 1000
+
+const isIdle = workout => Date.now() - lastActivityAt(workout) > AUTO_END_AFTER_MS
+
+/** End an idle workout: its sets stay in History, the next session gets suggested. */
+async function endIdleWorkout(workout) {
+  if (workout.exercises?.some(ex => ex.sets?.some(s => s.completed))) {
+    await db.settings.put({ key: 'lastSessionLabel', value: workout.selectedSession })
+  }
+  await clearActiveWorkout()
+}
 
 const initialState = {
   mode: 'picking', // 'picking' | 'logging' | 'summary'
@@ -213,6 +225,25 @@ export default function TodayTab({ onBack }) {
       .catch(err => console.error('Failed to log workout progress:', err))
   }, [loggedSignature]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // While the app stays open on a workout, end it after an hour without a
+  // logged set (checked every minute and when the app comes back).
+  useEffect(() => {
+    if (state.mode !== 'logging') return
+    let ending = false
+    const check = () => {
+      if (ending || document.visibilityState === 'hidden' || !isIdle(state)) return
+      ending = true
+      endIdleWorkout(state).then(() => dispatch({ type: 'RESET' }))
+    }
+    check()
+    const timer = setInterval(check, 60 * 1000)
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [state])
+
   // Load active workout on mount, or determine suggested next session
   useEffect(() => {
     if (sessions.length === 0) return
@@ -222,11 +253,8 @@ export default function TodayTab({ onBack }) {
       let activeWorkout = await loadActiveWorkout()
       // Sets are logged as they happen, so a workout left open (no Finish)
       // just ends once it's old enough; the next session gets suggested.
-      if (activeWorkout && Date.now() - lastActivityAt(activeWorkout) > AUTO_END_AFTER_MS) {
-        if (activeWorkout.exercises?.some(ex => ex.setsCompleted > 0)) {
-          await db.settings.put({ key: 'lastSessionLabel', value: activeWorkout.selectedSession })
-        }
-        await clearActiveWorkout()
+      if (activeWorkout && isIdle(activeWorkout)) {
+        await endIdleWorkout(activeWorkout)
         activeWorkout = null
       }
       if (activeWorkout) {
