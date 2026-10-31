@@ -27,7 +27,7 @@ export function buildLogEntry(state, now = Date.now()) {
     sessionLabel: state.selectedSession,
     durationSeconds: Math.round(((lastSetAt || now) - state.startTime) / 1000),
     exercises: state.exercises
-      .filter(ex => !ex.isBonus && ex.sets.some(s => s.completed))
+      .filter(ex => !ex.isBonus && (ex.sets.some(s => s.completed) || ex.note))
       .map(ex => ({
         exerciseId: ex.exerciseId,
         name: ex.name,
@@ -39,6 +39,7 @@ export function buildLogEntry(state, now = Date.now()) {
           rpe: s.rpe,
           completed: s.completed
         })),
+        note: ex.note || null,
         wasSwapped: ex.wasSwapped || false,
         swappedFrom: ex.swappedFrom || null
       }))

@@ -14,7 +14,8 @@ export function formatSets(sets) {
 
 /** Bottom sheet with an exercise's recent sessions and its top-set trend. */
 export default function ExerciseHistorySheet({ name, sessions, onClose }) {
-  const trend = [...sessions]
+  const trend = sessions
+    .filter(s => s.sets.length)
     .reverse()
     .map(s => {
       const top = s.sets.reduce((b, x) => (x.weight > b.weight || (x.weight === b.weight && x.reps > b.reps) ? x : b))
@@ -51,10 +52,13 @@ export default function ExerciseHistorySheet({ name, sessions, onClose }) {
           {sessions.map(s => {
             const rpe = avgRpe(s.sets)
             return (
-              <li key={s.date} className="flex gap-4 py-3 border-b border-white/[.06] last:border-b-0">
-                <span className="w-16 shrink-0 text-secondary">{fmtDate(s.date)}</span>
-                <span className="flex-1 tabular-nums">{formatSets(s.sets)}</span>
-                {rpe != null && <span className="text-secondary tabular-nums">RPE {rpe.toFixed(1)}</span>}
+              <li key={s.date} className="py-3 border-b border-white/[.06] last:border-b-0">
+                <div className="flex gap-4">
+                  <span className="w-16 shrink-0 text-secondary">{fmtDate(s.date)}</span>
+                  <span className="flex-1 tabular-nums">{s.sets.length ? formatSets(s.sets) : '—'}</span>
+                  {rpe != null && <span className="text-secondary tabular-nums">RPE {rpe.toFixed(1)}</span>}
+                </div>
+                {s.note && <p className="mt-1 pl-20 text-secondary italic whitespace-pre-wrap">“{s.note}”</p>}
               </li>
             )
           })}
