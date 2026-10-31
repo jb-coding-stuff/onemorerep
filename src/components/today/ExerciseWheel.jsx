@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
+import { haptic } from '../../utils/haptics'
 
 const AUTO_ADVANCE_DELAY_MS = 450
 // Within this distance of a card's centre position, dragging is damped so
@@ -28,6 +29,8 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   const suppressClickRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState(focusIndex)
   const activeRef = useRef(focusIndex)
+  // Haptic ticks only once the user has touched the wheel, not while it lays out.
+  const touchedRef = useRef(false)
   const [spacer, setSpacer] = useState(0)
 
   const updateStyles = useCallback(() => {
@@ -63,6 +66,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     if (best !== activeRef.current) {
       activeRef.current = best
       setActiveIndex(best)
+      if (touchedRef.current) haptic() // a tick each time the next exercise reaches the centre
     }
   }, [])
 
@@ -172,6 +176,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   // --- touch / pointer dragging with a magnetic centre ---
 
   function onPointerDown(e) {
+    touchedRef.current = true
     if (e.pointerType === 'mouse' && e.button !== 0) return
     suppressClickRef.current = false
     if (e.target.closest('input, textarea, select')) return
@@ -234,6 +239,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   // Trackpad / mouse wheel: one card per gesture.
   const wheelLockRef = useRef(0)
   function onWheel(e) {
+    touchedRef.current = true
     e.preventDefault()
     const now = performance.now()
     if (now - wheelLockRef.current < 350 || Math.abs(e.deltaY) < 4) return
