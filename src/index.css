@@ -109,8 +109,19 @@ body {
   background: transparent;
 }
 
+/* Feel like an app, not a web page: the page itself never scrolls or
+   bounces (iOS rubber-bands the whole document otherwise). Only the inner
+   scroll areas scroll, and they don't hand their overscroll to the page. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 #root {
   height: 100dvh;
+  overflow: hidden;
 }
 
 @layer components {
