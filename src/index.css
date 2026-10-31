@@ -164,14 +164,14 @@ body {
     border-radius: var(--control-radius);
     box-shadow: inset 0 1px 0 #fff, 0 6px 20px rgba(0, 0, 0, .35);
   }
-  .btn-primary:hover { filter: brightness(1.04); }
+  @media (hover: hover) { .btn-primary:hover { filter: brightness(1.04); } }
   .btn-accent {
     color: var(--on-accent);
     background: radial-gradient(120% 90% at 30% 0%, rgba(255, 255, 255, .35), transparent 55%), var(--accent);
     border-radius: var(--control-radius);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, .4), 0 8px 24px rgb(var(--accent-rgb) / .35);
   }
-  .btn-accent:hover { filter: brightness(1.08); }
+  @media (hover: hover) { .btn-accent:hover { filter: brightness(1.08); } }
   .btn-glass {
     position: relative;
     color: var(--ink);
@@ -180,7 +180,7 @@ body {
     border-radius: var(--control-radius);
     box-shadow: var(--control-shadow);
   }
-  .btn-glass:hover { background: var(--control-bg-hover); }
+  @media (hover: hover) { .btn-glass:hover { background: var(--control-bg-hover); } }
 
   /* Modal sheets: dim and soften everything behind them, and keep the sheet
      itself mostly opaque so the content underneath doesn't compete. */

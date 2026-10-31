@@ -37,11 +37,15 @@ export function vibrate() {
   return false
 }
 
-/** A tick triggered from code (e.g. while the wheel moves). */
-export function haptic() {
+/**
+ * A tick triggered from code. On iPhone it only plays inside a touch handler
+ * (touch start/end, tap), not during finger movement or animations.
+ * @param {{ force?: boolean }} [opts] - force: skip the rate limit
+ */
+export function haptic({ force = false } = {}) {
   if (!isTouch) return
   const now = performance.now()
-  if (now - last < 35) return // ticks closer than this blur into one
+  if (!force && now - last < 35) return // ticks closer than this blur into one
   last = now
   try {
     if (!vibrate()) hiddenSwitch().click()
