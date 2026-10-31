@@ -10,6 +10,9 @@ import MeTab from './components/me/MeTab'
 import RestTimerBar from './components/RestTimerBar'
 import { restoreFromSupabase } from './db/sync'
 import { syncWorkouts } from './db/workoutSync'
+import { supabase } from './db/supabase'
+import { setCurrentUser, claimLocalData } from './db/auth'
+import AuthScreen from './components/AuthScreen'
 import { migrateLegacyCustomExercises } from './db/exerciseCatalog'
 import { ensureProgramSystem, syncPacksFromRemote, activateInitialPack } from './program/localProvider'
 
@@ -78,11 +81,47 @@ function AppContent() {
   )
 }
 
+/**
+ * Shows the sign-in screen until there is a session. Supabase keeps the
+ * session on the device and refreshes it, so this is a one-time step.
+ */
+function AuthGate({ children }) {
+  const [userId, setUserId] = useState(undefined) // undefined = checking
+
+  useEffect(() => {
+    let current // undefined until the first answer
+    async function apply(session) {
+      const user = session?.user || null
+      if ((user?.id ?? null) === current) return
+      current = user?.id ?? null
+      setCurrentUser(user)
+      if (user && (await claimLocalData(user.id))) {
+        // Another account's data was cleared; start fresh.
+        window.location.reload()
+        return
+      }
+      setUserId(current)
+    }
+    supabase.auth.getSession().then(({ data }) => apply(data.session))
+    // Don't call Supabase inside this callback (it can deadlock the client).
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setTimeout(() => apply(session), 0)
+    })
+    return () => data.subscription.unsubscribe()
+  }, [])
+
+  if (userId === undefined) return <div className="w-full h-full" />
+  if (!userId) return <AuthScreen />
+  return children
+}
+
 export default function App() {
   return (
     <SettingsProvider>
       <RestTimerProvider>
-        <AppContent />
+        <AuthGate>
+          <AppContent />
+        </AuthGate>
       </RestTimerProvider>
     </SettingsProvider>
   )

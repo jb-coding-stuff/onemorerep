@@ -1,70 +1,63 @@
 /**
- * Supabase client factory from environment variables.
+ * Supabase client signed in as one app account.
  *
- * Required:
- *   SUPABASE_URL          - the project URL
- * One of (writes prefer the service key, which bypasses RLS):
- *   SUPABASE_SERVICE_KEY  - service role key (recommended for the server)
- *   SUPABASE_ANON_KEY     - anon key (reads always; writes only if RLS allows)
+ * Required environment variables:
+ *   SUPABASE_URL       - the project URL
+ *   SUPABASE_ANON_KEY  - the project's public anon key (the same one the app uses)
+ *   APP_EMAIL          - your login for the fitness app
+ *   APP_PASSWORD       - your password for the fitness app
  *
- * The client is created once and memoised. Missing configuration throws a clear,
- * actionable error rather than failing deep inside a request handler.
+ * The server signs in as that account, so Row Level Security limits it to the
+ * account's own plans, exercises and history, exactly like the app.
+ *
+ * The client is created and signed in once and memoised. Missing configuration
+ * or a failed sign-in throws a clear, actionable error.
  */
 
 import { createClient } from '@supabase/supabase-js'
 
-let cached = null
+const REQUIRED = ['SUPABASE_URL', 'SUPABASE_ANON_KEY', 'APP_EMAIL', 'APP_PASSWORD']
+
+let pending = null
 
 /**
- * @returns {{ client: import('@supabase/supabase-js').SupabaseClient, usingServiceKey: boolean }}
- * @throws {Error} when SUPABASE_URL or a usable key is missing
+ * @returns {Promise<{ client: import('@supabase/supabase-js').SupabaseClient, userId: string }>}
+ * @throws {Error} when configuration is missing or sign-in fails
  */
 export function getSupabase() {
-  if (cached) return cached
-
-  const url = process.env.SUPABASE_URL
-  if (!url || !url.trim()) {
-    throw new Error(
-      'SUPABASE_URL is not set. Configure it (and SUPABASE_SERVICE_KEY, or ' +
-        'SUPABASE_ANON_KEY) in the MCP server environment.'
-    )
+  if (!pending) {
+    pending = signIn().catch(err => {
+      pending = null // allow a retry on the next call
+      throw err
+    })
   }
+  return pending
+}
 
-  const serviceKey = process.env.SUPABASE_SERVICE_KEY
-  const anonKey = process.env.SUPABASE_ANON_KEY
-  const key = serviceKey || anonKey
-  if (!key || !key.trim()) {
-    throw new Error(
-      'No Supabase key found. Set SUPABASE_SERVICE_KEY (recommended for writes) ' +
-        'or SUPABASE_ANON_KEY in the MCP server environment.'
-    )
-  }
+async function signIn() {
+  const env = checkEnv()
+  if (!env.ok) throw new Error(env.error)
 
-  const client = createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false }
+  const client = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: true }
   })
-
-  cached = { client, usingServiceKey: Boolean(serviceKey && serviceKey.trim()) }
-  return cached
+  const { data, error } = await client.auth.signInWithPassword({
+    email: process.env.APP_EMAIL.trim(),
+    password: process.env.APP_PASSWORD
+  })
+  if (error) throw new Error(`Sign-in to the fitness app failed: ${error.message}. Check APP_EMAIL and APP_PASSWORD.`)
+  return { client, userId: data.user.id }
 }
 
 /**
- * Validate that the minimum required env var is present, without constructing a
- * client. Used at startup to fail fast with a clear message.
+ * Validate that the required env vars are present, without signing in. Used at
+ * startup to fail fast with a clear message.
  * @returns {{ ok: boolean, error?: string }}
  */
 export function checkEnv() {
-  if (!process.env.SUPABASE_URL || !process.env.SUPABASE_URL.trim()) {
-    return { ok: false, error: 'SUPABASE_URL is required but not set.' }
-  }
-  const hasKey =
-    (process.env.SUPABASE_SERVICE_KEY && process.env.SUPABASE_SERVICE_KEY.trim()) ||
-    (process.env.SUPABASE_ANON_KEY && process.env.SUPABASE_ANON_KEY.trim())
-  if (!hasKey) {
-    return {
-      ok: false,
-      error: 'A Supabase key is required: set SUPABASE_SERVICE_KEY or SUPABASE_ANON_KEY.'
-    }
+  const missing = REQUIRED.filter(k => !process.env[k] || !process.env[k].trim())
+  if (missing.length) {
+    return { ok: false, error: `Missing environment variables: ${missing.join(', ')}.` }
   }
   return { ok: true }
 }

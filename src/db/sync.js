@@ -1,11 +1,13 @@
 import { supabase } from './supabase'
 import { db } from './db'
+import { currentUserId } from './auth'
 
 /**
  * Push all progression states to Supabase
  */
 export async function pushProgressionStates(states) {
   const rows = states.map(s => ({
+    user_id: currentUserId(),
     exercise_id: s.exerciseId,
     current_weight: s.currentWeight,
     rep_range: s.repRange,
@@ -16,7 +18,7 @@ export async function pushProgressionStates(states) {
 
   const { error } = await supabase
     .from('progression_state')
-    .upsert(rows, { onConflict: 'exercise_id' })
+    .upsert(rows, { onConflict: 'user_id,exercise_id' })
 
   if (error) console.error('Sync: failed to push progression states', error)
 }
@@ -28,11 +30,12 @@ export async function pushProgram(program) {
   const { error } = await supabase
     .from('program')
     .upsert({
+      user_id: currentUserId(),
       id: 1,
       name: program.name,
       sessions: program.sessions,
       updated_at: new Date().toISOString()
-    }, { onConflict: 'id' })
+    }, { onConflict: 'user_id,id' })
 
   if (error) console.error('Sync: failed to push program', error)
 }
@@ -44,6 +47,7 @@ export async function pushExerciseLibrary(exercises) {
   if (!exercises.length) return
 
   const rows = exercises.map(e => ({
+    user_id: currentUserId(),
     exercise_id: e.exerciseId,
     name: e.name,
     parent_exercise_id: e.parentExerciseId,
@@ -56,7 +60,7 @@ export async function pushExerciseLibrary(exercises) {
 
   const { error } = await supabase
     .from('exercise_library')
-    .upsert(rows, { onConflict: 'exercise_id' })
+    .upsert(rows, { onConflict: 'user_id,exercise_id' })
 
   if (error) console.error('Sync: failed to push exercise library', error)
 }
@@ -69,6 +73,7 @@ export async function pushCatalog(entries) {
   if (!entries?.length) return
 
   const rows = entries.map(e => ({
+    user_id: currentUserId(),
     canonical_id: e.canonicalId,
     display_name: e.displayName,
     aliases: e.aliases ?? [],
@@ -82,7 +87,7 @@ export async function pushCatalog(entries) {
 
   const { error } = await supabase
     .from('exercise_catalog')
-    .upsert(rows, { onConflict: 'canonical_id' })
+    .upsert(rows, { onConflict: 'user_id,canonical_id' })
 
   if (error) console.error('Sync: failed to push catalog', error)
 }
@@ -100,6 +105,7 @@ export async function pushPack(pack, { active = false } = {}) {
     const { error: clearError } = await supabase
       .from('program_pack')
       .update({ is_active: false })
+      .eq('user_id', currentUserId())
       .neq('pack_id', pack.packId)
     if (clearError) throw clearError
   }
@@ -107,6 +113,7 @@ export async function pushPack(pack, { active = false } = {}) {
   const { error } = await supabase
     .from('program_pack')
     .upsert({
+      user_id: currentUserId(),
       pack_id: pack.packId,
       version: pack.version ?? 1,
       name: pack.name,
@@ -115,7 +122,7 @@ export async function pushPack(pack, { active = false } = {}) {
       sessions: pack.sessions,
       is_active: active,
       updated_at: pack.updatedAt || new Date().toISOString()
-    }, { onConflict: 'pack_id' })
+    }, { onConflict: 'user_id,pack_id' })
 
   if (error) throw error
 }
@@ -130,8 +137,8 @@ export async function pullPacks() {
       { data: catalog },
       { data: packs }
     ] = await Promise.all([
-      supabase.from('exercise_catalog').select('*'),
-      supabase.from('program_pack').select('*')
+      supabase.from('exercise_catalog').select('*').eq('user_id', currentUserId()),
+      supabase.from('program_pack').select('*').eq('user_id', currentUserId())
     ])
 
     await db.transaction('rw', [db.exerciseCatalog, db.programPack], async () => {
@@ -173,6 +180,7 @@ function mapPackRow(p) {
     source: p.source,
     progressionRules: p.progression_rules,
     sessions: p.sessions,
+    shared: !!p.shared,
     updatedAt: p.updated_at
   }
 }
@@ -194,7 +202,7 @@ export async function restoreFromSupabase() {
       supabase.from('program').select('*').limit(1),
       supabase.from('exercise_library').select('*'),
       supabase.from('exercise_catalog').select('*'),
-      supabase.from('program_pack').select('*')
+      supabase.from('program_pack').select('*').eq('user_id', currentUserId())
     ])
 
     await db.transaction('rw', [db.progressionState, db.program, db.exerciseLibrary, db.exerciseCatalog, db.programPack], async () => {

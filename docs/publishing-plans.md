@@ -40,7 +40,9 @@ Config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
       "args": ["/Users/joshuabiron/onemorerep/mcp-server/src/index.js"],
       "env": {
         "SUPABASE_URL": "https://gjuaecwlxurksqlmoiic.supabase.co",
-        "SUPABASE_SERVICE_KEY": "<service_role key from Supabase → Settings → API>"
+        "SUPABASE_ANON_KEY": "<the app's anon key>",
+        "APP_EMAIL": "<your app login email>",
+        "APP_PASSWORD": "<your app password>"
       }
     }
   }
@@ -57,6 +59,9 @@ Flow: share the PDF/Excel → Claude drafts → `preview_import` → you confirm
 ## Route B — Any device (incl. phone), via the Supabase connector
 
 Requires the **Supabase connector** enabled in the chat. No local setup.
+Only for the project owner: the connector runs SQL as the database owner,
+bypassing Row Level Security, so every row must name the account explicitly
+(`user_id`, looked up by the app login email below). Friends use Route A.
 
 ### Step 1 — Read context
 
@@ -127,10 +132,11 @@ Aliases must be **unioned, never replaced**:
 
 ```sql
 insert into exercise_catalog
-  (canonical_id, display_name, aliases, muscle_group, movement_type)
+  (user_id, canonical_id, display_name, aliases, muscle_group, movement_type)
 values
-  ('pec_deck', 'Pec Deck', '["Pec Deck","Chest Fly Machine"]', 'chest', 'isolation')
-on conflict (canonical_id) do update set
+  ((select id from auth.users where email = '<your app email>'),
+   'pec_deck', 'Pec Deck', '["Pec Deck","Chest Fly Machine"]', 'chest', 'isolation')
+on conflict (user_id, canonical_id) do update set
   display_name = excluded.display_name,
   aliases = (
     select jsonb_agg(distinct v)
@@ -149,8 +155,9 @@ names, no weights** (weights come from history at hydration time).
 
 ```sql
 insert into program_pack
-  (pack_id, version, name, source, progression_rules, sessions, is_active)
+  (user_id, pack_id, version, name, source, progression_rules, sessions, is_active)
 values (
+  (select id from auth.users where email = '<your app email>'),
   'my_new_plan',
   1,
   'My New Plan',
@@ -164,7 +171,7 @@ values (
    ]',
   true
 )
-on conflict (pack_id) do update set
+on conflict (user_id, pack_id) do update set
   version = program_pack.version + 1,
   name = excluded.name,
   source = excluded.source,
@@ -174,7 +181,9 @@ on conflict (pack_id) do update set
   updated_at = now();
 
 -- exactly one active pack
-update program_pack set is_active = false where pack_id <> 'my_new_plan';
+update program_pack set is_active = false
+where pack_id <> 'my_new_plan'
+  and user_id = (select id from auth.users where email = '<your app email>');
 ```
 
 ### Step 6 — Verify
@@ -182,7 +191,9 @@ update program_pack set is_active = false where pack_id <> 'my_new_plan';
 ```sql
 select pack_id, name, version, is_active,
        jsonb_array_length(sessions) as sessions
-from program_pack order by updated_at desc;
+from program_pack
+where user_id = (select id from auth.users where email = '<your app email>')
+order by updated_at desc;
 ```
 
 Then open the app — `syncPacksFromRemote()` runs on startup, pulls the pack,
