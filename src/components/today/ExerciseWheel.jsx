@@ -32,8 +32,10 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   const suppressClickRef = useRef(false)
   const [activeIndex, setActiveIndex] = useState(focusIndex)
   const activeRef = useRef(focusIndex)
-  // Haptic ticks only once the user has touched the wheel, not while it lays out.
-  const touchedRef = useRef(false)
+  // Haptic ticks only for movement the user causes (drag + its glide, mouse
+  // wheel, tapping a card into focus), not for re-centring or auto-advance.
+  const tickUntilRef = useRef(0)
+  const tickFor = ms => { tickUntilRef.current = performance.now() + ms }
   // Scroll position of the last detent tick.
   const tickTopRef = useRef(null)
   const [spacer, setSpacer] = useState(0)
@@ -49,7 +51,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     // Detent ticks: one per TICK_SPACING_PX of travel, so a slow turn clicks
     // now and then and a fast flick rattles, thinning out as it glides to a stop.
     const top = scroller.scrollTop
-    if (tickTopRef.current == null || !touchedRef.current) tickTopRef.current = top
+    if (tickTopRef.current == null || performance.now() > tickUntilRef.current) tickTopRef.current = top
     else if (Math.abs(top - tickTopRef.current) >= TICK_SPACING_PX) {
       tickTopRef.current = top
       haptic()
@@ -189,7 +191,6 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   // --- touch / pointer dragging with a magnetic centre ---
 
   function onPointerDown(e) {
-    touchedRef.current = true
     if (e.pointerType === 'mouse' && e.button !== 0) return
     suppressClickRef.current = false
     if (e.target.closest('input, textarea, select')) return
@@ -209,6 +210,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     if (!drag.dragging) {
       if (Math.abs(e.clientY - drag.startY) < DRAG_THRESHOLD_PX) return
       drag.dragging = true
+      tickUntilRef.current = Infinity
       drag.lastY = e.clientY
       scrollerRef.current.setPointerCapture?.(e.pointerId)
     }
@@ -232,6 +234,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     if (!drag || drag.id !== e.pointerId) return
     dragRef.current = null
     if (!drag.dragging) return
+    tickFor(1000) // the glide that follows
     // The click that follows a drag must not toggle or open anything; the
     // flag is cleared on the next pointerdown.
     suppressClickRef.current = true
@@ -252,7 +255,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   // Trackpad / mouse wheel: one card per gesture.
   const wheelLockRef = useRef(0)
   function onWheel(e) {
-    touchedRef.current = true
+    tickFor(1000)
     e.preventDefault()
     const now = performance.now()
     if (now - wheelLockRef.current < 350 || Math.abs(e.deltaY) < 4) return
@@ -302,6 +305,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
             if (i === activeIndex) return
             e.preventDefault()
             e.stopPropagation()
+            tickFor(1000)
             scrollTo(i)
           }}
         >
