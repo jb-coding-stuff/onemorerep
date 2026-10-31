@@ -128,14 +128,12 @@ export default function ExerciseCard({
           ))}
         </div>
 
-        {exercise.alternatives?.length > 0 && (
-          <button
-            onClick={() => setShowSwap(true)}
-            className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
-          >
-            ⇄ Swap
-          </button>
-        )}
+        <button
+          onClick={() => setShowSwap(true)}
+          className="mt-4 w-full py-2 text-sm font-medium text-secondary hover:bg-white/[.06] rounded-full transition-colors"
+        >
+          ⇄ Swap
+        </button>
 
         {isAllDone && (
           <BonusRound
@@ -160,17 +158,6 @@ export default function ExerciseCard({
             setShowSwap(false)
           }}
           onClose={() => setShowSwap(false)}
-          onSaveCustom={(newAlt) => {
-            // Append custom alternative to exercise and then swap to it
-            exercise.alternatives = [...(exercise.alternatives || []), { exerciseId: newAlt.exerciseId, name: newAlt.name }]
-            onSwap({
-              ...exercise,
-              exerciseId: newAlt.exerciseId,
-              name: newAlt.name,
-              movementType: newAlt.movementType
-            })
-            setShowSwap(false)
-          }}
         />
         </BodyPortal>
       )}

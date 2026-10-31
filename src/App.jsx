@@ -9,6 +9,7 @@ import HistoryTab from './components/history/HistoryTab'
 import MeTab from './components/me/MeTab'
 import RestTimerBar from './components/RestTimerBar'
 import { restoreFromSupabase } from './db/sync'
+import { migrateLegacyCustomExercises } from './db/exerciseCatalog'
 import { ensureProgramSystem, syncPacksFromRemote, activateInitialPack } from './program/localProvider'
 
 function AppContent() {
@@ -36,6 +37,7 @@ function AppContent() {
     restoreIfEmpty()
       .then(ensureProgramSystem)
       .then(ensurePlan)
+      .then(migrateLegacyCustomExercises)
       .catch((err) => console.error('Startup chain failed:', err))
       .finally(() => setReady(true))
       // Pull any remotely-published packs (e.g. from the MCP server) after the

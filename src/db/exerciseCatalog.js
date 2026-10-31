@@ -1,4 +1,6 @@
 import { db } from './db'
+import { supabase } from './supabase'
+import { pushCatalog } from './sync'
 import { normalizeName } from '../program/schema'
 
 /**
@@ -142,4 +144,92 @@ export async function resolveToCanonical(idOrName, catalogList) {
   if (byNorm) return byNorm.canonicalId
 
   return null
+}
+
+// --- User exercise library (custom entries live in the same catalog) ---
+
+export const MUSCLE_GROUPS = [
+  'chest', 'back', 'shoulders', 'biceps', 'triceps',
+  'quads', 'hamstrings', 'glutes', 'calves', 'core'
+]
+
+const CUSTOM_PREFIX = 'custom_'
+
+/** Exercises the user added (as opposed to ones that came with a plan). */
+export function isCustomExercise(entry) {
+  return entry?.canonicalId?.startsWith(CUSTOM_PREFIX)
+}
+
+function slug(name) {
+  return String(name).toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'exercise'
+}
+
+async function pushEntries(ids) {
+  const entries = (await db.exerciseCatalog.bulkGet(ids)).filter(Boolean)
+  pushCatalog(entries).catch(err => console.error('Sync: failed to push exercise', err))
+}
+
+/**
+ * Add an exercise to the library and sync it.
+ * @param {{ name: string, muscleGroup: string, movementType: string, equipment?: string }} input
+ * @returns {Promise<Object>} the stored catalog entry
+ */
+export async function createCustomExercise({ name, muscleGroup, movementType, equipment }) {
+  const displayName = name.trim()
+  const existing = await resolveToCanonical(displayName)
+  if (existing) throw new Error(`"${displayName}" is already in your exercises.`)
+  let canonicalId = CUSTOM_PREFIX + slug(displayName)
+  for (let n = 2; await db.exerciseCatalog.get(canonicalId); n++) {
+    canonicalId = `${CUSTOM_PREFIX}${slug(displayName)}_${n}`
+  }
+  await upsertCatalogExercise({
+    canonicalId,
+    displayName,
+    aliases: [displayName],
+    muscleGroup,
+    movementType,
+    equipment: equipment?.trim() || null
+  })
+  await pushEntries([canonicalId])
+  return db.exerciseCatalog.get(canonicalId)
+}
+
+/** Rename a custom exercise; the old name stays as an alias so history still matches. */
+export async function renameCustomExercise(canonicalId, newName) {
+  const entry = await db.exerciseCatalog.get(canonicalId)
+  if (!isCustomExercise(entry) || !newName.trim()) return
+  await upsertCatalogExercise({ ...entry, displayName: newName.trim(), aliases: [entry.displayName, newName.trim()] })
+  await pushEntries([canonicalId])
+}
+
+/** Delete a custom exercise locally and in Supabase. Logged workouts keep their sets. */
+export async function deleteCustomExercise(canonicalId) {
+  if (!canonicalId?.startsWith(CUSTOM_PREFIX)) return
+  await db.exerciseCatalog.delete(canonicalId)
+  const { error } = await supabase.from('exercise_catalog').delete().eq('canonical_id', canonicalId)
+  if (error) console.error('Sync: failed to delete exercise', error)
+}
+
+/**
+ * One-time copy of exercises created with the old "Create Alternative" form
+ * (stored in exerciseLibrary, which nothing read back) into the catalog.
+ */
+export async function migrateLegacyCustomExercises() {
+  if ((await db.settings.get('legacyExercisesMigrated'))?.value) return
+  const legacy = await db.exerciseLibrary.toArray()
+  const ids = []
+  for (const ex of legacy) {
+    if (!ex?.exerciseId || !ex.name || (await db.exerciseCatalog.get(ex.exerciseId))) continue
+    const id = ex.exerciseId.startsWith(CUSTOM_PREFIX) ? ex.exerciseId : CUSTOM_PREFIX + ex.exerciseId
+    await upsertCatalogExercise({
+      canonicalId: id,
+      displayName: ex.name,
+      aliases: [ex.name],
+      muscleGroup: ex.muscleGroup || 'general',
+      movementType: ex.movementType || 'isolation'
+    })
+    ids.push(id)
+  }
+  if (ids.length) await pushEntries(ids)
+  await db.settings.put({ key: 'legacyExercisesMigrated', value: true })
 }

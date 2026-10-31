@@ -1,171 +1,127 @@
 import { useState, useEffect } from 'react'
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useSettings } from '../../contexts/SettingsContext'
-import { getProgressionStates } from '../../db/progression'
-import { initializeProgressionState } from '../../db/progression'
-import { saveCustomExercise } from '../../db/exerciseLibrary'
+import { db } from '../../db/db'
+import { getProgressionStates, initializeProgressionState } from '../../db/progression'
+import { normalizeName } from '../../program/schema'
+import AddExerciseForm from '../AddExerciseForm'
 
-export default function SwapDrawer({ exercise, onSelect, onClose, onSaveCustom }) {
+const LIBRARY_LIMIT = 12
+
+export default function SwapDrawer({ exercise, onSelect, onClose }) {
   const { displayWeight } = useSettings()
   const [progressionMap, setProgressionMap] = useState({})
-  const [showCustomForm, setShowCustomForm] = useState(false)
-  const [customName, setCustomName] = useState('')
-  const [customMovementType, setCustomMovementType] = useState('isolation')
-  const [customWeight, setCustomWeight] = useState(exercise.startingWeight || 0)
+  const [showForm, setShowForm] = useState(false)
+  const [query, setQuery] = useState('')
+  const catalog = useLiveQuery(() => db.exerciseCatalog.toArray(), [], [])
 
-  // Load progression states for alternatives
+  const current = catalog.find(e => e.canonicalId === exercise.exerciseId)
+  const muscleGroup = exercise.muscleGroup || current?.muscleGroup
+  const altIds = new Set((exercise.alternatives || []).map(a => a.exerciseId))
+
+  // Whole library minus this exercise and its plan alternatives; same muscle
+  // group first, then alphabetical.
+  const q = normalizeName(query)
+  const library = catalog
+    .filter(e => e.canonicalId !== exercise.exerciseId && !altIds.has(e.canonicalId))
+    .filter(e => !q || normalizeName(e.displayName).includes(q) || (e.aliases || []).some(a => normalizeName(a).includes(q)))
+    .sort((a, b) =>
+      (b.muscleGroup === muscleGroup) - (a.muscleGroup === muscleGroup) ||
+      a.displayName.localeCompare(b.displayName))
+  const shown = q ? library : library.slice(0, LIBRARY_LIMIT)
+
   useEffect(() => {
-    async function loadProgressions() {
-      if (!exercise.alternatives?.length) return
-      const altIds = exercise.alternatives.map(alt => alt.exerciseId)
-      const states = await getProgressionStates(altIds)
-      setProgressionMap(states)
-    }
-    loadProgressions()
-  }, [exercise])
+    const ids = [...altIds, ...shown.map(e => e.canonicalId)]
+    if (ids.length) getProgressionStates(ids).then(setProgressionMap)
+  }, [exercise, catalog.length, query]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function handleSaveCustom() {
-    if (!customName.trim()) return
-
-    const customId = `custom_${Date.now()}`
-    const newAlt = {
-      exerciseId: customId,
-      name: customName,
-      parentExerciseId: exercise.exerciseId,
-      movementType: customMovementType,
-      muscleGroup: exercise.muscleGroup,
-      startingWeight: customWeight,
-      isCustom: true
-    }
-
-    // Save to library
-    await saveCustomExercise(newAlt)
-
-    // Initialize progression state
-    await initializeProgressionState(customId, {
-      startingWeight: customWeight,
-      targetReps: exercise.targetReps,
-      muscleGroup: exercise.muscleGroup,
-      movementType: customMovementType
-    })
-
-    // Notify parent and trigger swap
-    onSaveCustom(newAlt)
-
-    // Reset form
-    setShowCustomForm(false)
-    setCustomName('')
-    setCustomMovementType('isolation')
-    setCustomWeight(exercise.startingWeight || 0)
+  function pick(id, name, movementType) {
+    onSelect({ ...exercise, exerciseId: id, name, movementType: movementType || exercise.movementType })
   }
+
+  async function handleCreated(entry) {
+    await initializeProgressionState(entry.canonicalId, {
+      startingWeight: exercise.startingWeight || 0,
+      targetReps: exercise.targetReps,
+      muscleGroup: entry.muscleGroup,
+      movementType: entry.movementType
+    })
+    pick(entry.canonicalId, entry.displayName, entry.movementType)
+  }
+
+  const weightFor = id => progressionMap[id]?.currentWeight ?? exercise.startingWeight
+  const row = 'glass-inset w-full p-3 text-left hover:bg-white/[.08] transition-colors'
 
   return (
     <>
-      {/* Backdrop */}
+      <div className="sheet-backdrop fixed inset-0 z-40" onClick={onClose} />
+
       <div
-        className="sheet-backdrop fixed inset-0 z-40"
-        onClick={onClose}
-      />
-
-      {/* Drawer */}
-      <div className="glass-float glass-sheet fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[80vh] overflow-y-auto">
-        <h3 className="font-semibold mb-4">Swap Exercise</h3>
-
-        {/* Built-in alternatives */}
-        <div className="space-y-2 mb-4">
-          {exercise.alternatives?.map((alt) => {
-            const altProgression = progressionMap[alt.exerciseId]
-            const displayWt = altProgression?.currentWeight ?? exercise.startingWeight
-            return (
-              <button
-                key={alt.exerciseId}
-                onClick={() => {
-                  onSelect({
-                    ...exercise,
-                    exerciseId: alt.exerciseId,
-                    name: alt.name,
-                    movementType: exercise.movementType
-                  })
-                }}
-                className="glass-inset w-full p-3 text-left hover:bg-white/[.08] transition-colors"
-              >
-                <div className="font-medium">{alt.name}</div>
-                <div className="text-sm text-secondary">
-                  {exercise.targetReps} reps @ {displayWeight(displayWt)}
-                </div>
-              </button>
-            )
-          })}
+        className="glass-float glass-sheet fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[85vh] overflow-y-auto"
+        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+        role="dialog"
+        aria-label="Swap exercise"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-semibold">Swap {exercise.name}</h3>
+          <button onClick={onClose} aria-label="Close" className="w-9 h-9 flex items-center justify-center rounded-full text-secondary hover:bg-white/[.06]">
+            ✕
+          </button>
         </div>
 
-        {/* Custom exercise creation */}
-        {!showCustomForm ? (
-          <button
-            onClick={() => setShowCustomForm(true)}
-            className="btn-glass w-full p-3 text-left transition-colors font-medium mb-4"
-          >
-            + Create Alternative
-          </button>
-        ) : (
-          <div className="glass-inset p-3 mb-4 space-y-3">
-            <div>
-              <label className="text-sm font-medium block mb-1">Exercise Name</label>
-              <input
-                type="text"
-                value={customName}
-                onChange={e => setCustomName(e.target.value)}
-                placeholder="e.g., Dumbbell Bench Press"
-                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-1">Type</label>
-              <select
-                value={customMovementType}
-                onChange={e => setCustomMovementType(e.target.value)}
-                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
-              >
-                <option value="compound_upper">Compound Upper</option>
-                <option value="compound_lower">Compound Lower</option>
-                <option value="isolation">Isolation</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium block mb-1">Starting Weight (kg)</label>
-              <input
-                type="number"
-                value={customWeight}
-                onChange={e => setCustomWeight(parseFloat(e.target.value) || 0)}
-                step="0.5"
-                className="w-full px-3 py-2 bg-white/[.06] border border-white/10 rounded-xl text-sm"
-              />
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={handleSaveCustom}
-                disabled={!customName.trim()}
-                className="btn-primary flex-1 py-2 font-medium text-sm disabled:opacity-50 transition-colors"
-              >
-                Save & Swap
+        {exercise.alternatives?.length > 0 && (
+          <div className="space-y-2 mb-5">
+            <div className="text-xs text-secondary uppercase tracking-wide">Plan alternatives</div>
+            {exercise.alternatives.map(alt => (
+              <button key={alt.exerciseId} onClick={() => pick(alt.exerciseId, alt.name)} className={row}>
+                <div className="font-medium">{alt.name}</div>
+                <div className="text-sm text-secondary">
+                  {exercise.targetReps} reps @ {displayWeight(weightFor(alt.exerciseId))}
+                </div>
               </button>
-              <button
-                onClick={() => setShowCustomForm(false)}
-                className="btn-glass flex-1 py-2 text-sm transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+            ))}
           </div>
         )}
 
-        <button
-          onClick={onClose}
-          className="btn-glass w-full py-2 text-secondary font-medium transition-colors"
-        >
-          Close
-        </button>
+        {showForm ? (
+          <div className="notice mb-5">
+            <AddExerciseForm
+              defaults={{ muscleGroup, movementType: exercise.movementType }}
+              submitLabel="Add & swap"
+              onCreated={handleCreated}
+              onCancel={() => setShowForm(false)}
+            />
+          </div>
+        ) : (
+          <div className="space-y-2">
+            <div className="text-xs text-secondary uppercase tracking-wide">Your exercises</div>
+            <input
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder={`Search ${library.length} exercises`}
+              aria-label="Search exercises"
+              className="w-full px-4 py-2.5 bg-white/[.06] border border-white/10 rounded-full text-sm"
+            />
+            {shown.map(e => (
+              <button key={e.canonicalId} onClick={() => pick(e.canonicalId, e.displayName, e.movementType)} className={row}>
+                <div className="font-medium">{e.displayName}</div>
+                <div className="text-sm text-secondary">
+                  {e.muscleGroup && e.muscleGroup !== 'general' ? `${e.muscleGroup} · ` : ''}
+                  {progressionMap[e.canonicalId] ? displayWeight(progressionMap[e.canonicalId].currentWeight) : 'new'}
+                </div>
+              </button>
+            ))}
+            {!q && library.length > LIBRARY_LIMIT && (
+              <p className="text-xs text-secondary text-center py-1">Search to see all {library.length}</p>
+            )}
+            {q && shown.length === 0 && (
+              <p className="text-sm text-secondary py-2">No match for “{query}”.</p>
+            )}
+            <button onClick={() => setShowForm(true)} className="btn-glass w-full py-3 text-sm font-medium mt-2">
+              + New exercise
+            </button>
+          </div>
+        )}
       </div>
     </>
   )
