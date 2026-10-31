@@ -1,6 +1,7 @@
 import { db } from './db'
 import { supabase } from './supabase'
 import { currentUserId } from './auth'
+import { syncProgression } from './progressionSync'
 
 /**
  * Reliable workout sync between this device and Supabase.
@@ -201,6 +202,7 @@ export function syncWorkouts() {
     }
     await sendDeletes()
     if (assigned) await pullWorkouts()
+    await syncProgression()
   })()
     .catch(err => console.error('Sync: workout sync failed', err))
     .finally(() => { running = null })

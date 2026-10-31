@@ -1,7 +1,7 @@
 import { db } from './db'
-import { updateProgressionState, getAllProgressionStates } from './progression'
+import { updateProgressionState } from './progression'
 import { updateProgressionAfterWorkout } from '../utils/progressionEngine'
-import { pushProgressionStates } from './sync'
+import { syncProgression } from './progressionSync'
 import { saveWorkoutLocal, uploadWorkout, deleteWorkoutEverywhere } from './workoutSync'
 
 /**
@@ -100,9 +100,7 @@ export function syncLiveWorkout(state) {
     const newer = await db.workoutLog.where('date').above(entry.date).count()
     if (newer === 0) await updateProgressionFromWorkout(state.exercises.filter(ex => !ex.isBonus))
     uploadWorkout(id).catch(err => console.error('Sync: live workout upload failed', err))
-    getAllProgressionStates()
-      .then(states => states.length && pushProgressionStates(states))
-      .catch(err => console.error('Sync: progression push failed', err))
+    syncProgression()
     return id
   })
   chain = run.catch(() => {})

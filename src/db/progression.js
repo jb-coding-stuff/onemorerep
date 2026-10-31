@@ -59,13 +59,15 @@ export async function initializeProgressionState(exerciseId, exercise) {
   const existing = await getProgressionState(exerciseId)
   if (existing) return
 
-  await updateProgressionState(exerciseId, {
+  // A starting value, not a real weight: dated at the epoch so a weight
+  // synced from another device always wins over it.
+  await db.progressionState.put({
     exerciseId,
     currentWeight: exercise.startingWeight || 0,
     repRange: exercise.targetReps,
     lastSessionAvgRpe: null,
     lastSessionDate: null,
-    lastUpdated: new Date().toISOString()
+    lastUpdated: new Date(0).toISOString()
   })
 }
 
