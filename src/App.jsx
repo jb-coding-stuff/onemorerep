@@ -9,6 +9,7 @@ import HistoryTab from './components/history/HistoryTab'
 import MeTab from './components/me/MeTab'
 import RestTimerBar from './components/RestTimerBar'
 import { restoreFromSupabase } from './db/sync'
+import { syncWorkouts } from './db/workoutSync'
 import { migrateLegacyCustomExercises } from './db/exerciseCatalog'
 import { ensureProgramSystem, syncPacksFromRemote, activateInitialPack } from './program/localProvider'
 
@@ -43,6 +44,19 @@ function AppContent() {
       // Pull any remotely-published packs (e.g. from the MCP server) after the
       // app has rendered; syncPacksFromRemote never throws.
       .then(() => syncPacksFromRemote())
+      .then(() => syncWorkouts())
+  }, [])
+
+  // Retry uploads and pull other devices' workouts when the app comes back
+  // to the foreground or the connection returns.
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') syncWorkouts() }
+    window.addEventListener('online', syncWorkouts)
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      window.removeEventListener('online', syncWorkouts)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
   }, [])
 
   if (!loaded || !ready) {

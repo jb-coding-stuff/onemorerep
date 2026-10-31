@@ -1,8 +1,8 @@
 import { db } from './db'
-import { supabase } from './supabase'
 import { updateProgressionState, getAllProgressionStates } from './progression'
 import { updateProgressionAfterWorkout } from '../utils/progressionEngine'
-import { pushWorkout, pushProgressionStates } from './sync'
+import { pushProgressionStates } from './sync'
+import { saveWorkoutLocal, uploadWorkout, deleteWorkoutEverywhere } from './workoutSync'
 
 /**
  * Logging an in-progress workout as it happens, so it lands in History and
@@ -92,15 +92,14 @@ export function syncLiveWorkout(state) {
     if (entry.exercises.length === 0) return state.logId ?? idsByStart.get(state.startTime) ?? null
 
     let id = state.logId ?? idsByStart.get(state.startTime)
-    if (id != null) await db.workoutLog.put({ ...entry, id })
-    else id = await db.workoutLog.add(entry)
+    id = await saveWorkoutLocal(entry, id ?? undefined)
     idsByStart.set(state.startTime, id)
 
     // A workout continued from History only moves progression on if it's
     // still the latest one; otherwise it would overwrite newer weights.
     const newer = await db.workoutLog.where('date').above(entry.date).count()
     if (newer === 0) await updateProgressionFromWorkout(state.exercises.filter(ex => !ex.isBonus))
-    pushWorkout({ ...entry, id }).catch(err => console.error('Sync: live workout push failed', err))
+    uploadWorkout(id).catch(err => console.error('Sync: live workout upload failed', err))
     getAllProgressionStates()
       .then(states => states.length && pushProgressionStates(states))
       .catch(err => console.error('Sync: progression push failed', err))
@@ -124,7 +123,5 @@ export async function deleteWorkoutEntry(id) {
   const entry = await db.workoutLog.get(id)
   if (entry) idsByStart.delete(Date.parse(entry.date))
   for (const [start, logId] of idsByStart) if (logId === id) idsByStart.delete(start)
-  await db.workoutLog.delete(id)
-  const { error } = await supabase.from('workout_log').delete().eq('local_id', id)
-  if (error) console.error('Sync: failed to delete workout', error)
+  await deleteWorkoutEverywhere(id)
 }

@@ -1,4 +1,5 @@
 import { db } from './db'
+import { saveWorkoutLocal } from './workoutSync'
 
 /**
  * Log a completed workout
@@ -6,11 +7,7 @@ import { db } from './db'
  * @returns {Promise<number>} - returns the id
  */
 export async function logWorkout(entry) {
-  const id = await db.workoutLog.add({
-    ...entry,
-    date: entry.date || new Date().toISOString()
-  })
-  return id
+  return saveWorkoutLocal({ ...entry, date: entry.date || new Date().toISOString() })
 }
 
 /**
