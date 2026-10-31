@@ -9,6 +9,7 @@ import {
 import { BackIcon, IconButton } from '../icons'
 import ExerciseLibrary from './ExerciseLibrary'
 import InviteFriends from './InviteFriends'
+import HapticButton from '../HapticButton'
 import { useSettings } from '../../contexts/SettingsContext'
 import { supabase } from '../../db/supabase'
 import { currentUser, displayName, wipeLocalData } from '../../db/auth'
@@ -241,6 +242,18 @@ export default function MeTab({ onBack }) {
             Save
           </button>
         )}
+      </div>
+
+      {/* Haptics check */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm">Vibration</span>
+        <HapticButton
+          onPress={() => {}}
+          label="Test vibration"
+          className="text-sm px-3 py-1.5 rounded-full text-secondary hover:bg-white/[.06]"
+        >
+          Test
+        </HapticButton>
       </div>
 
       {/* Training Plan */}
