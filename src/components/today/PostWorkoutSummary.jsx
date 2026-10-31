@@ -40,7 +40,7 @@ export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
 
   return (
     <div className="sheet-backdrop fixed inset-0 z-50 flex items-end">
-      <div className="glass-float glass-sheet w-full rounded-t-3xl p-6 pb-10 max-h-[80vh] overflow-y-auto animate-slide-up">
+      <div className="glass-float glass-sheet w-full rounded-t-3xl p-6 pb-10 max-h-[80vh] overflow-y-auto overscroll-contain animate-slide-up">
         <h2 className="text-2xl font-bold mb-6">Workout Complete!</h2>
 
         {/* Duration */}

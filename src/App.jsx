@@ -70,7 +70,7 @@ function AppContent() {
     // Scroll area starts below the status bar / Dynamic Island so content never
     // scrolls under it (iOS blurs that region in standalone mode).
     <div className="flex flex-col h-full w-full" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto overscroll-contain">
         {activeTab === null && <HomeScreen onNavigate={setActiveTab} />}
         {activeTab === 'today' && <TodayTab onBack={() => setActiveTab(null)} />}
         {activeTab === 'history' && <HistoryTab onBack={() => setActiveTab(null)} onOpenWorkout={() => setActiveTab('today')} />}
