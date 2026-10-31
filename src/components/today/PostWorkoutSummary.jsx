@@ -4,7 +4,8 @@ import { logWorkout } from '../../db/workoutLog'
 import { getAllProgressionStates } from '../../db/progression'
 import { syncLiveWorkout, buildLogEntry } from '../../db/liveWorkout'
 import { db } from '../../db/db'
-import { pushWorkout, pushProgressionStates } from '../../db/sync'
+import { pushProgressionStates } from '../../db/sync'
+import { uploadWorkout } from '../../db/workoutSync'
 
 export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
   const { exercises, selectedSession: sessionLabel } = workout
@@ -30,9 +31,8 @@ export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
       if (newer === 0) await db.settings.put({ key: 'lastSessionLabel', value: sessionLabel })
 
       // Sync to Supabase in background (fire and forget)
-      const savedWorkout = await db.workoutLog.get(id)
       const allProgressions = await getAllProgressionStates()
-      if (savedWorkout) pushWorkout(savedWorkout)
+      uploadWorkout(id).catch(err => console.error('Sync: workout upload failed', err))
       if (allProgressions.length) pushProgressionStates(allProgressions)
 
       // Done

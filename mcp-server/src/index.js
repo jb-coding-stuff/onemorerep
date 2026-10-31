@@ -55,6 +55,7 @@ async function fetchWorkouts() {
   const { data, error } = await client
     .from('workout_log')
     .select('*')
+    .is('deleted_at', null)
     .order('date', { ascending: true })
   if (error) throw new Error(`workout_log read failed: ${error.message}`)
   return data || []

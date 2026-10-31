@@ -2,25 +2,6 @@ import { supabase } from './supabase'
 import { db } from './db'
 
 /**
- * Push a single workout log entry to Supabase
- */
-export async function pushWorkout(workout) {
-  const { error } = await supabase
-    .from('workout_log')
-    .upsert({
-      local_id: workout.id,
-      date: workout.date,
-      session_label: workout.sessionLabel,
-      duration_seconds: workout.durationSeconds,
-      exercises: workout.exercises
-    }, { onConflict: 'local_id' })
-
-  if (error) {
-    console.error('Sync: failed to push workout', error)
-  }
-}
-
-/**
  * Push all progression states to Supabase
  */
 export async function pushProgressionStates(states) {
@@ -203,14 +184,12 @@ function mapPackRow(p) {
 export async function restoreFromSupabase() {
   try {
     const [
-      { data: workouts },
       { data: progressions },
       { data: programs },
       { data: exercises },
       { data: catalog },
       { data: packs }
     ] = await Promise.all([
-      supabase.from('workout_log').select('*').order('date', { ascending: true }),
       supabase.from('progression_state').select('*'),
       supabase.from('program').select('*').limit(1),
       supabase.from('exercise_library').select('*'),
@@ -218,16 +197,9 @@ export async function restoreFromSupabase() {
       supabase.from('program_pack').select('*')
     ])
 
-    await db.transaction('rw', [db.workoutLog, db.progressionState, db.program, db.exerciseLibrary, db.exerciseCatalog, db.programPack], async () => {
-      if (workouts?.length) {
-        await db.workoutLog.bulkAdd(workouts.map(w => ({
-          id: w.local_id,
-          date: w.date,
-          sessionLabel: w.session_label,
-          durationSeconds: w.duration_seconds,
-          exercises: w.exercises
-        })))
-      }
+    await db.transaction('rw', [db.progressionState, db.program, db.exerciseLibrary, db.exerciseCatalog, db.programPack], async () => {
+      // Workouts come in through syncWorkouts() (workoutSync.js), which
+      // de-duplicates by client id.
 
       if (progressions?.length) {
         await db.progressionState.bulkPut(progressions.map(p => ({

@@ -44,4 +44,9 @@ db.version(4).stores({
   programPack: 'packId, name, updatedAt'
 })
 
+// v5: workouts get a clientId that is unique across devices (sync key).
+db.version(5).stores({
+  workoutLog: '++id, date, sessionLabel, clientId'
+})
+
 export default db
