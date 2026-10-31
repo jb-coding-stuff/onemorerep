@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { haptic } from '../../utils/haptics'
 import { useSettings } from '../../contexts/SettingsContext'
 
 const WEIGHT_STEP = 2.5
@@ -18,7 +19,7 @@ function Stepper({ label, unit, value, touched, onChange, onStep, inputMode }) {
   const stepButton = 'w-12 h-12 shrink-0 flex items-center justify-center rounded-full text-2xl font-light text-secondary hover:text-[color:var(--ink)] hover:bg-white/[.06] transition-colors'
   return (
     <div className="flex items-center gap-2">
-      <button type="button" onClick={() => onStep(-1)} className={stepButton} aria-label={`${label} minus`}>
+      <button type="button" onClick={() => { haptic(); onStep(-1) }} className={stepButton} aria-label={`${label} minus`}>
         −
       </button>
       <label className="min-w-0 flex-1 flex items-baseline justify-center gap-1.5">
@@ -36,7 +37,7 @@ function Stepper({ label, unit, value, touched, onChange, onStep, inputMode }) {
         />
         <span className="text-sm text-secondary">{unit}</span>
       </label>
-      <button type="button" onClick={() => onStep(1)} className={stepButton} aria-label={`${label} plus`}>
+      <button type="button" onClick={() => { haptic(); onStep(1) }} className={stepButton} aria-label={`${label} plus`}>
         +
       </button>
     </div>
