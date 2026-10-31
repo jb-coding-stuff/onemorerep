@@ -5,7 +5,7 @@ function formatKg(w) {
   return `${Number((Number(w) || 0).toFixed(2))} kg`
 }
 
-export default function WorkoutEntry({ entry }) {
+export default function WorkoutEntry({ entry, onContinue, onDelete }) {
   const [expanded, setExpanded] = useState(false)
 
   const date = new Date(entry.date)
@@ -58,6 +58,14 @@ export default function WorkoutEntry({ entry }) {
               </div>
             </div>
           ))}
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => onContinue?.(entry)} className="btn-glass flex-1 py-2 text-sm font-medium">
+              Continue
+            </button>
+            <button onClick={() => onDelete?.(entry)} className="flex-1 py-2 text-sm text-red-400 rounded-full hover:bg-white/[.06]">
+              Delete
+            </button>
+          </div>
         </div>
       )}
     </div>

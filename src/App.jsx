@@ -56,7 +56,7 @@ function AppContent() {
       <main className="flex-1 overflow-y-auto">
         {activeTab === null && <HomeScreen onNavigate={setActiveTab} />}
         {activeTab === 'today' && <TodayTab onBack={() => setActiveTab(null)} />}
-        {activeTab === 'history' && <HistoryTab onBack={() => setActiveTab(null)} />}
+        {activeTab === 'history' && <HistoryTab onBack={() => setActiveTab(null)} onOpenWorkout={() => setActiveTab('today')} />}
         {activeTab === 'me' && <MeTab onBack={() => setActiveTab(null)} />}
       </main>
       <RestTimerBar />

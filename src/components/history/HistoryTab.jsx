@@ -5,16 +5,38 @@ import WorkoutEntry from './WorkoutEntry'
 import StatsView from './StatsView'
 import WorkoutCalendar, { dayKey } from './WorkoutCalendar'
 import { BackIcon, IconButton } from '../icons'
+import { loadActiveWorkout, saveActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
+import { deleteWorkoutEntry } from '../../db/liveWorkout'
+import { buildResumedWorkout } from '../../workout/resumeWorkout'
+
+const fmtEntry = e => `${e.sessionLabel} (${new Date(e.date).toLocaleDateString('de-DE', { day: 'numeric', month: 'short' })})`
+const isSameWorkout = (active, entry) => active && (active.logId === entry.id || active.startTime === Date.parse(entry.date))
 
 const VIEWS = [
   { id: 'workouts', label: 'Workouts' },
   { id: 'stats', label: 'Stats' }
 ]
 
-export default function HistoryTab({ onBack }) {
+export default function HistoryTab({ onBack, onOpenWorkout }) {
   const workouts = useLiveQuery(() => db.workoutLog.orderBy('date').reverse().toArray())
   const [view, setView] = useState('workouts')
   const [selectedDay, setSelectedDay] = useState(null)
+  async function continueWorkout(entry) {
+    const active = await loadActiveWorkout()
+    if (active && !isSameWorkout(active, entry)) {
+      if (!confirm(`Close the workout in progress (${active.selectedSession})? Its logged sets stay in History.`)) return
+    }
+    if (!isSameWorkout(active, entry)) await saveActiveWorkout(await buildResumedWorkout(entry))
+    onOpenWorkout?.()
+  }
+
+  async function deleteWorkout(entry) {
+    if (!confirm(`Delete ${fmtEntry(entry)}? This can't be undone.`)) return
+    const active = await loadActiveWorkout()
+    if (isSameWorkout(active, entry)) await clearActiveWorkout()
+    await deleteWorkoutEntry(entry.id)
+  }
+
   const shown = selectedDay ? (workouts || []).filter(w => dayKey(w.date) === selectedDay) : workouts
 
   return (
@@ -57,7 +79,7 @@ export default function HistoryTab({ onBack }) {
             </div>
           )}
           {shown.map(workout => (
-            <WorkoutEntry key={workout.id} entry={workout} />
+            <WorkoutEntry key={workout.id} entry={workout} onContinue={continueWorkout} onDelete={deleteWorkout} />
           ))}
         </div>
       ) : (
