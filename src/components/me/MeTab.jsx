@@ -7,6 +7,7 @@ import {
   switchPack
 } from '../../program/localProvider'
 import { BackIcon, IconButton } from '../icons'
+import ExerciseLibrary from './ExerciseLibrary'
 import { useSettings } from '../../contexts/SettingsContext'
 
 function formatDuration(seconds) {
@@ -17,6 +18,7 @@ function formatDuration(seconds) {
 
 export default function MeTab({ onBack }) {
   const [loading, setLoading] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
   const { compoundRest, isolationRest, saveRestTimers } = useSettings()
   const [compound, setCompound] = useState(null)
   const [isolation, setIsolation] = useState(null)
@@ -120,6 +122,14 @@ export default function MeTab({ onBack }) {
     }
   }
 
+  if (showLibrary) {
+    return (
+      <div className="px-4 max-w-md mx-auto" style={{ paddingTop: '1.5rem' }}>
+        <ExerciseLibrary onBack={() => setShowLibrary(false)} />
+      </div>
+    )
+  }
+
   return (
     <div className="px-4 space-y-6 max-w-md mx-auto" style={{ paddingTop: '1.5rem' }}>
       <div className="flex items-center gap-2">
@@ -214,6 +224,17 @@ export default function MeTab({ onBack }) {
           )}
         </div>
       )}
+
+      {/* Exercise library */}
+      <div>
+        <button
+          onClick={() => setShowLibrary(true)}
+          className="w-full py-4 flex items-center justify-between text-left font-medium border-t border-white/[.06] transition-opacity active:opacity-60"
+        >
+          Exercises
+          <span className="text-secondary" aria-hidden="true">›</span>
+        </button>
+      </div>
 
       {/* Load Program */}
       <div>
