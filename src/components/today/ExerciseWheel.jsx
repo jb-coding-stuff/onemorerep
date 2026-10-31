@@ -1,6 +1,9 @@
 import { useRef, useState, useEffect, useLayoutEffect, useCallback } from 'react'
 import { haptic } from '../../utils/haptics'
 
+// Distance between haptic detents while the wheel moves.
+const TICK_SPACING_PX = 34
+
 const AUTO_ADVANCE_DELAY_MS = 450
 // Within this distance of a card's centre position, dragging is damped so
 // the focused card feels magnetic.
@@ -31,6 +34,8 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
   const activeRef = useRef(focusIndex)
   // Haptic ticks only once the user has touched the wheel, not while it lays out.
   const touchedRef = useRef(false)
+  // Scroll position of the last detent tick.
+  const tickTopRef = useRef(null)
   const [spacer, setSpacer] = useState(0)
 
   const updateStyles = useCallback(() => {
@@ -40,6 +45,15 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     // Measure untransformed layout positions; bounding rects would include
     // each card's own tilt/scale and never settle exactly at the centre.
     const box = { height: scroller.clientHeight }
+
+    // Detent ticks: one per TICK_SPACING_PX of travel, so a slow turn clicks
+    // now and then and a fast flick rattles, thinning out as it glides to a stop.
+    const top = scroller.scrollTop
+    if (tickTopRef.current == null || !touchedRef.current) tickTopRef.current = top
+    else if (Math.abs(top - tickTopRef.current) >= TICK_SPACING_PX) {
+      tickTopRef.current = top
+      haptic()
+    }
     const center = scroller.scrollTop + box.height / 2
     let best = 0
     let bestOffset = Infinity
@@ -66,7 +80,6 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     if (best !== activeRef.current) {
       activeRef.current = best
       setActiveIndex(best)
-      if (touchedRef.current) haptic() // a tick each time the next exercise reaches the centre
     }
   }, [])
 
