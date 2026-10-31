@@ -235,6 +235,9 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
     dragRef.current = null
     if (!drag.dragging) return
     tickFor(1000) // the glide that follows
+    // iOS only plays haptics in direct response to a touch (lift-off counts,
+    // finger movement doesn't), so the release itself gets a tick.
+    haptic({ force: true })
     // The click that follows a drag must not toggle or open anything; the
     // flag is cleared on the next pointerdown.
     suppressClickRef.current = true
@@ -306,6 +309,7 @@ export default function ExerciseWheel({ items, focusIndex, renderItem }) {
             e.preventDefault()
             e.stopPropagation()
             tickFor(1000)
+            haptic({ force: true })
             scrollTo(i)
           }}
         >

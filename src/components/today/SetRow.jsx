@@ -16,7 +16,7 @@ function parseNumber(text) {
 }
 
 function Stepper({ label, unit, value, touched, onChange, onStep, inputMode }) {
-  const stepButton = 'w-12 h-12 shrink-0 flex items-center justify-center rounded-full text-2xl font-light text-secondary hover:text-[color:var(--ink)] hover:bg-white/[.06] transition-colors'
+  const stepButton = 'w-12 h-12 shrink-0 flex items-center justify-center rounded-full text-2xl font-light text-secondary hover:text-[color:var(--ink)] hover:bg-white/[.06] active:text-[color:var(--ink)] active:bg-white/[.1] transition-colors'
   return (
     <div className="flex items-center gap-2">
       <HapticButton onPress={() => onStep(-1)} className={stepButton} label={`${label} minus`}>

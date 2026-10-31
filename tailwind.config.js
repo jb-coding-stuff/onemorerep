@@ -1,5 +1,8 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  // hover: styles only on devices that can hover, so a tap on iPhone
+  // doesn't leave a button highlighted.
+  future: { hoverOnlyWhenSupported: true },
   content: [
     './index.html',
     './src/**/*.{js,jsx,ts,tsx}'
