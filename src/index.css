@@ -15,6 +15,11 @@ select {
   user-select: text;
 }
 
+/* No double-tap zoom: tapping +/- quickly must not zoom the app. */
+html {
+  touch-action: manipulation;
+}
+
 @font-face {
   font-family: 'Geist';
   src: url('@geist-fonts/geist-sans/Geist-Variable.woff2') format('woff2');
