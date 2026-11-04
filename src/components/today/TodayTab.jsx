@@ -69,13 +69,16 @@ function workoutReducer(state, action) {
       const { exerciseIndex, setIndex, reps, rpe, weight } = action.payload
       const updated = [...state.exercises]
       if (updated[exerciseIndex]) {
+        const prev = updated[exerciseIndex].sets[setIndex]
         updated[exerciseIndex].sets[setIndex] = {
-          ...updated[exerciseIndex].sets[setIndex],
+          ...prev,
           actualReps: reps,
           rpe,
           weight,
           completed: true,
-          completedAt: Date.now()
+          // Pressing Done again on a finished set keeps its original time,
+          // so editing it later doesn't stretch the workout duration.
+          completedAt: prev.completed && prev.completedAt ? prev.completedAt : Date.now()
         }
         // Update weight for remaining incomplete sets of this exercise
         for (let i = setIndex + 1; i < updated[exerciseIndex].sets.length; i++) {

@@ -6,7 +6,7 @@ function mergeSets(planSets, loggedSets) {
   const out = planSets.map(s => ({ ...s }))
   for (const ls of loggedSets || []) {
     const i = (ls.setNumber ?? out.length + 1) - 1
-    const set = { ...ls, completed: !!ls.completed, completedAt: null }
+    const set = { ...ls, completed: !!ls.completed, completedAt: ls.completedAt ?? null }
     if (i < out.length) out[i] = { ...out[i], ...set }
     else out.push({ ...set, setNumber: out.length + 1 })
   }

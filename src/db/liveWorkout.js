@@ -53,7 +53,10 @@ export function buildLogEntry(state, now = Date.now()) {
           actualReps: s.actualReps,
           weight: s.weight,
           rpe: s.rpe,
-          completed: s.completed
+          completed: s.completed,
+          // When the set was finished (ms since epoch), so the workout
+          // duration can be checked or recomputed later.
+          completedAt: s.completed ? s.completedAt ?? null : null
         })),
         note: ex.note || null,
         wasSwapped: ex.wasSwapped || false,
