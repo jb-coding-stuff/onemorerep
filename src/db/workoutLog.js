@@ -80,16 +80,40 @@ export async function getWorkoutsForExercise(exerciseId) {
  */
 export async function getRecentSessionsForExercise(exerciseId, name, { excludeDate = null, limit = 5 } = {}) {
   const workouts = await db.workoutLog.orderBy('date').reverse().toArray()
+  const norm = v => String(v || '').trim().toLowerCase()
   const out = []
   for (const w of workouts) {
     if (excludeDate && w.date === excludeDate) continue
-    const ex = w.exercises?.find(e => e.exerciseId === exerciseId || (name && e.name === name))
+    const exercises = w.exercises || []
+    // The exercise itself, by id or (trimmed, case-insensitive) name. If it
+    // wasn't done, what was done in its place: a substitute swapped in for it.
+    let ex = exercises.find(e => e.exerciseId === exerciseId || (name && norm(e.name) === norm(name)))
+    let substitute = null
+    if (!ex) {
+      ex = exercises.find(e => slotOf(e, exercises) === exerciseId)
+      substitute = ex?.name || null
+    }
     const sets = (ex?.sets || [])
       .filter(s => s.completed && (s.actualReps ?? 0) > 0)
       .map(s => ({ weight: Number(s.weight) || 0, reps: s.actualReps, rpe: s.rpe ?? null }))
     const note = ex?.note || null
-    if (sets.length || note) out.push({ date: w.date, sets, note })
+    if (sets.length || note) out.push({ date: w.date, sets, note, substitute })
     if (out.length >= limit) break
   }
   return out
+}
+
+/**
+ * The plan exercise a logged exercise stood in for. Older entries point at
+ * the previous swap rather than the original, so follow the chain within the
+ * same workout.
+ */
+function slotOf(entry, exercises) {
+  let from = entry.swappedFrom
+  for (let hops = 0; from && hops < 5; hops++) {
+    const prev = exercises.find(e => e.exerciseId === from && e !== entry)
+    if (!prev?.swappedFrom) break
+    from = prev.swappedFrom
+  }
+  return from || null
 }

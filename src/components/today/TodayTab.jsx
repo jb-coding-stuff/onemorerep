@@ -122,7 +122,8 @@ function workoutReducer(state, action) {
         })),
         note: '',
         wasSwapped: true,
-        swappedFrom: updated[exerciseIndex].exerciseId,
+        // Always the plan's own exercise, even after swapping more than once.
+        swappedFrom: updated[exerciseIndex].swappedFrom || updated[exerciseIndex].exerciseId,
         setsCompleted: 0
       }
       return { ...state, exercises: updated }

@@ -124,6 +124,7 @@ export default function ExerciseCard({
               <>
                 <p className="flex-1 min-w-0 text-secondary">
                   <span className="text-[color:var(--ink)]">Last</span> · {fmtDate(last.date)} ·{' '}
+                  {last.substitute && <>{last.substitute} ·{' '}</>}
                   <span className="tabular-nums">{formatSets(last.sets)}</span>
                   {lastRpe != null && <> · RPE {lastRpe.toFixed(1)}</>}
                 </p>
@@ -131,7 +132,7 @@ export default function ExerciseCard({
                   More
                 </button>
               </>
-            ) : (
+            ) : history == null ? null : (
               <p className="text-secondary">No previous sessions yet.</p>
             )}
           </div>
