@@ -58,6 +58,9 @@ export async function activatePack(packId) {
       packId: hydrated.packId,
       progressionRules: hydrated.progressionRules,
       sessions: hydrated.sessions,
+      // Which version of the pack this was built from, so an edited pack
+      // (same id, newer updatedAt) is noticed and rebuilt.
+      packUpdatedAt: pack.updatedAt ?? null,
       createdAt: new Date().toISOString()
     })
     await db.settings.put({ key: 'activePackId', value: packId })
@@ -162,8 +165,8 @@ export async function importPack(rawPack) {
 
 /**
  * Pull the catalog + packs published remotely (e.g. by the MCP server) into the
- * local DB, and if the remote-active pack differs from the local active pack,
- * switch to it. Best-effort: never throws, so a network failure can't block load.
+ * local DB, and if the remote-active pack differs from the local active pack
+ * (or the active pack was edited), switch to / rebuild it. Best-effort: never throws, so a network failure can't block load.
  * @returns {Promise<void>}
  */
 export async function syncPacksFromRemote() {
@@ -173,6 +176,14 @@ export async function syncPacksFromRemote() {
 
     const localActiveId = await getActivePackId()
     if (remoteActiveId !== localActiveId) {
+      await activatePack(remoteActiveId)
+      return
+    }
+
+    // Same plan, but it may have been edited (e.g. an exercise replaced):
+    // rebuild it when the version in use is not the one just pulled.
+    const [program, pack] = await Promise.all([db.program.toArray().then(p => p[0]), getPack(remoteActiveId)])
+    if (program && pack && (program.packUpdatedAt ?? null) !== (pack.updatedAt ?? null)) {
       await activatePack(remoteActiveId)
     }
   } catch (err) {
