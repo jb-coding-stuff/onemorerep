@@ -25,7 +25,7 @@ function mergeSets(planSets, loggedSets) {
 export async function buildResumedWorkout(entry) {
   const program = await db.program.toArray().then(p => p[0])
   const session = program?.sessions?.find(s => s.label === entry.sessionLabel)
-  const exercises = session ? await buildSessionExercises(session, program.progressionRules) : []
+  const exercises = session ? await buildSessionExercises(session) : []
 
   for (const logged of entry.exercises || []) {
     const idx = exercises.findIndex(e =>
@@ -48,8 +48,7 @@ export async function buildResumedWorkout(entry) {
       setsCompleted: sets.filter(s => s.completed).length,
       note: logged.note || '',
       wasSwapped: logged.wasSwapped || false,
-      swappedFrom: logged.swappedFrom || null,
-      weightReason: null
+      swappedFrom: logged.swappedFrom || null
     }
     if (idx >= 0) exercises[idx] = merged
     else exercises.push(merged)

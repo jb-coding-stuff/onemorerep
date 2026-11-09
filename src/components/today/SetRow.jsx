@@ -50,7 +50,9 @@ function Stepper({ label, unit, value, touched, onChange, onStep, inputMode }) {
  * button turns into the countdown so the inputs stay visible.
  */
 export default function SetRow({ set, exercise, isOpen, rest, onOpen, onCancel, onDone }) {
-  const [reps, setReps] = useState(String(set.targetReps))
+  // Reps start at what was done last time at this set, else the plan's target.
+  const startReps = set.lastReps ?? set.targetReps
+  const [reps, setReps] = useState(String(startReps))
   const [weight, setWeight] = useState(formatNumber(set.weight || 0))
   const [repsTouched, setRepsTouched] = useState(false)
   const [weightTouched, setWeightTouched] = useState(false)
@@ -61,7 +63,7 @@ export default function SetRow({ set, exercise, isOpen, rest, onOpen, onCancel, 
   // each time this set opens.
   useEffect(() => {
     if (!isOpen) return
-    setReps(String(set.targetReps))
+    setReps(String(startReps))
     setWeight(formatNumber(set.weight || 0))
     setRepsTouched(false)
     setWeightTouched(false)
@@ -89,7 +91,7 @@ export default function SetRow({ set, exercise, isOpen, rest, onOpen, onCancel, 
                 <span className="text-lg">✓</span>
               </>
             ) : (
-              <span className="text-sm text-secondary">{displayWeight(set.weight)} × {set.targetReps}</span>
+              <span className="text-sm text-secondary">{displayWeight(set.weight)} × {startReps}</span>
             )}
           </div>
         </div>
@@ -105,14 +107,14 @@ export default function SetRow({ set, exercise, isOpen, rest, onOpen, onCancel, 
 
   function stepReps(direction) {
     const current = parseInt(reps, 10)
-    const base = Number.isFinite(current) ? current : set.targetReps
+    const base = Number.isFinite(current) ? current : startReps
     setReps(String(Math.max(0, base + direction * REPS_STEP)))
     setRepsTouched(true)
   }
 
   function handleSubmit() {
     const parsedReps = parseInt(reps, 10)
-    const finalReps = Number.isFinite(parsedReps) ? parsedReps : set.targetReps
+    const finalReps = Number.isFinite(parsedReps) ? parsedReps : startReps
     const finalWeight = parseNumber(weight) ?? set.weight ?? 0
     onDone(finalReps, rpe, finalWeight)
   }
