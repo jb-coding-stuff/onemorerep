@@ -34,7 +34,11 @@ function durationOf(state, now) {
     const extra = lastSetAt > state.resumedAt ? lastSetAt - state.resumedAt : 0
     return (state.priorDurationSeconds || 0) + Math.round(extra / 1000)
   }
-  return Math.round(((lastSetAt || now) - state.startTime) / 1000)
+  // The clock starts with the first finished set, not when the session was
+  // opened: tapping into a session or a set without logging doesn't count.
+  const times = completedTimes(state).filter(t => t > 0)
+  if (times.length === 0) return 0
+  return Math.max(0, Math.round((lastSetAt - Math.min(...times)) / 1000))
 }
 
 export function buildLogEntry(state, now = Date.now()) {
