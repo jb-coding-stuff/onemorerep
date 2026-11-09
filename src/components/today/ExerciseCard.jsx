@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useRestTimer } from '../../contexts/RestTimerContext'
-import { shouldSuggestWeightIncrease, computeNextSetWeight } from '../../utils/progressionEngine'
 import { getRecentSessionsForExercise } from '../../db/workoutLog'
 import SetRow from './SetRow'
 import SwapDrawer from './SwapDrawer'
@@ -17,7 +16,6 @@ export default function ExerciseCard({
   exerciseIndex,
   progressionRules,
   onSetComplete,
-  onSuggestWeight,
   onSwap,
   onNote,
   onBonusRound,
@@ -77,9 +75,6 @@ export default function ExerciseCard({
   function handleDone(setIdx, reps, rpe, weight) {
     const set = exercise.sets[setIdx]
     onSetComplete(exerciseIndex, setIdx, reps, rpe, weight)
-    if (shouldSuggestWeightIncrease(set, exercise.sets.length, setIdx + 1, progressionRules)) {
-      onSuggestWeight(setIdx, computeNextSetWeight(set.weight, exercise.movementType, progressionRules))
-    }
 
     const duration = exercise.movementType === 'isolation' ? isolationRest : compoundRest
     restTimer.startTimer(duration, `${restKeyPrefix}${set.setNumber}`, exercise.name)
@@ -104,9 +99,6 @@ export default function ExerciseCard({
           className="w-full text-left"
         >
           <h3 className="font-semibold text-lg">{exercise.name}</h3>
-          {exercise.weightReason && (
-            <p className="text-xs text-secondary mt-1">{exercise.weightReason}</p>
-          )}
         </button>
 
         {prevNote && (

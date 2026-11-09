@@ -2,11 +2,9 @@ import { useReducer, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../../db/db'
 import { getProgressionState, initializeProgressionState } from '../../db/progression'
-import { getLastWorkoutForExercise } from '../../db/workoutLog'
-import { computeSessionWeight } from '../../utils/progressionEngine'
 import { saveActiveWorkout, loadActiveWorkout, clearActiveWorkout } from '../../db/activeWorkout'
 import { syncLiveWorkout, deleteLoggedWorkout, lastActivityAt } from '../../db/liveWorkout'
-import { buildSessionExercises } from '../../workout/buildSession'
+import { buildSessionExercises, buildSets, getLastSets } from '../../workout/buildSession'
 import { nextSessionLabel } from '../../workout/nextSession'
 import ExerciseCard from './ExerciseCard'
 import PostWorkoutSummary from './PostWorkoutSummary'
@@ -98,28 +96,17 @@ function workoutReducer(state, action) {
       return { ...state, exercises: updated }
     }
 
-    case 'SUGGEST_WEIGHT': {
-      const { exerciseIndex, setIndex, newWeight } = action.payload
-      const updated = [...state.exercises]
-      if (updated[exerciseIndex] && updated[exerciseIndex].sets[setIndex + 1]) {
-        updated[exerciseIndex].sets[setIndex + 1].weight = newWeight
-      }
-      return { ...state, exercises: updated }
-    }
-
     case 'SWAP_EXERCISE': {
       const { exerciseIndex, newExercise } = action.payload
       const updated = [...state.exercises]
       updated[exerciseIndex] = {
         ...newExercise,
-        sets: updated[exerciseIndex].sets.map((s, i) => ({
-          setNumber: i + 1,
-          targetReps: newExercise.targetReps,
-          actualReps: null,
-          weight: newExercise.startingWeight || 0,
-          rpe: null,
-          completed: false
-        })),
+        sets: buildSets(
+          updated[exerciseIndex].sets.length,
+          newExercise.targetReps,
+          newExercise.startingWeight || 0,
+          newExercise.lastSets
+        ),
         note: '',
         wasSwapped: true,
         // Always the plan's own exercise, even after swapping more than once.
@@ -285,7 +272,7 @@ export default function TodayTab({ onBack }) {
   async function startSession(sessionLabel) {
     const session = sessions.find(s => s.label === sessionLabel)
     if (!session) return
-    const exercisesWithWeights = await buildSessionExercises(session, progressionRules)
+    const exercisesWithWeights = await buildSessionExercises(session)
 
     setStaleWorkout(null)
     dispatch({
@@ -325,19 +312,8 @@ export default function TodayTab({ onBack }) {
 
     // Get progression state for this alternative
     const progression = await getProgressionState(newExercise.exerciseId)
-    const lastWorkout = await getLastWorkoutForExercise(newExercise.exerciseId)
-
-    let sessionWeight = progression?.currentWeight || parentExercise.startingWeight || 0
-    let weightReason = null
-
-    if (lastWorkout && progression) {
-      const result = computeSessionWeight(progression, {
-        exercise: newExercise,
-        sets: lastWorkout.exercise.sets
-      }, progressionRules)
-      sessionWeight = result.weight
-      weightReason = result.reason
-    }
+    const lastSets = await getLastSets(newExercise.exerciseId, newExercise.name)
+    const sessionWeight = lastSets[0]?.weight ?? (progression?.currentWeight || parentExercise.startingWeight || 0)
 
     dispatch({
       type: 'SWAP_EXERCISE',
@@ -349,7 +325,7 @@ export default function TodayTab({ onBack }) {
           name: newExercise.name,
           movementType: newExercise.movementType || parentExercise.movementType,
           startingWeight: sessionWeight,
-          weightReason
+          lastSets
         }
       }
     })
@@ -462,12 +438,6 @@ export default function TodayTab({ onBack }) {
         workoutDate={state.startTime ? new Date(state.startTime).toISOString() : null}
         progressionRules={progressionRules}
         onSetComplete={handleSetComplete}
-        onSuggestWeight={(setIdx, newWeight) =>
-          dispatch({
-            type: 'SUGGEST_WEIGHT',
-            payload: { exerciseIndex: idx, setIndex: setIdx, newWeight }
-          })
-        }
         onSwap={(newExercise) => handleSwap(idx, newExercise)}
         onNote={(note) => dispatch({ type: 'SET_NOTE', payload: { exerciseIndex: idx, note } })}
         onBonusRound={(bonusEx) =>
