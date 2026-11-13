@@ -39,8 +39,8 @@ export default function PostWorkoutSummary({ workout, onDone, onCancel }) {
   }
 
   return (
-    <div className="sheet-backdrop fixed inset-0 z-50 flex items-end">
-      <div className="glass-float glass-sheet w-full rounded-t-3xl p-6 pb-10 max-h-[80dvh] overflow-y-auto overscroll-contain animate-slide-up">
+    <div className="sheet-backdrop fixed left-0 right-0 top-0 z-50 flex items-end" style={{ bottom: '-120px' }}>
+      <div className="glass-float glass-sheet w-full rounded-t-3xl p-6 max-h-[80dvh] overflow-y-auto overscroll-contain animate-slide-up" style={{ paddingBottom: 'calc(2.5rem + 120px)' }}>
         <h2 className="text-2xl font-bold mb-6">Workout Complete!</h2>
 
         {/* Duration */}
