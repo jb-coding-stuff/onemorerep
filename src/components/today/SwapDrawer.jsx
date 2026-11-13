@@ -54,11 +54,11 @@ export default function SwapDrawer({ exercise, onSelect, onClose }) {
 
   return (
     <>
-      <div className="sheet-backdrop fixed inset-0 z-40" onClick={onClose} />
+      <div className="sheet-backdrop fixed left-0 right-0 top-0 z-40" style={{ bottom: '-120px' }} onClick={onClose} />
 
       <div
-        className="glass-float glass-sheet fixed bottom-0 left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[85dvh] overflow-y-auto overscroll-contain"
-        style={{ paddingBottom: 'calc(1.25rem + env(safe-area-inset-bottom))' }}
+        className="glass-float glass-sheet fixed left-0 right-0 rounded-t-3xl z-50 p-5 animate-slide-up max-h-[85dvh] overflow-y-auto overscroll-contain"
+        style={{ bottom: '-120px', paddingBottom: 'calc(1.25rem + 120px + env(safe-area-inset-bottom))' }}
         role="dialog"
         aria-label="Swap exercise"
       >
